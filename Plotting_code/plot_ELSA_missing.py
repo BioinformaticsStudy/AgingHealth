@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import argparse
 
 import matplotlib as mpl
 mpl.rcParams['mathtext.fontset'] = 'cm'
@@ -24,8 +25,14 @@ medications = []
 background_nice = ['Longterm ill', 'Illness limits', 'Everythings effort', 'Ever smoke', 'Smoke now', 'Height', 'BMI','Mobility', 'Country', 'Alcohol', 'Joint replace', 'Fractures', 'Sex', 'Ethnicity', 'Blood pres med', 'Blood thin med', 'Chol med', 'Hipknee med', 'Lung med']
 
 
-data = pd.read_csv('../Data/ELSA_cleaned.csv')
+parser = argparse.ArgumentParser('Plot_Missing')
+parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa',help='the dataset that was used to train the model; either \'elsa\' or \'sample\'')
+parser.add_argument('--no_compare',action='store_true',help='whether or not to plot the comparison model')
+args = parser.parse_args()
+filename = 'sample_data' if args.dataset == 'sample' else 'ELSA_cleaned'
+postfix = '_sample' if args.dataset == 'sample' else ''
 
+data = pd.read_csv(f'../Data/{filename}.csv')
 
 for n in range(len(deficits)):
     if n in [15, 16, 23, 25, 26, 28]:
@@ -56,15 +63,16 @@ times = np.arange(-0.5, 20.5, 1)
 data['delta_t'] = (data['age'] - data.groupby('id')['age'].transform('first')).astype(int)
 data['delta_death_age'] = (data['death age'] - data.groupby('id')['age'].transform('first')).astype(int)
 
-
 data[data < -100] = np.nan
 data.loc[data['delta_death_age'] < 0, 'delta_death_age'] = np.nan
+# print(data.loc[data['delta_t'] > 30])
+# print(data.loc[data['id'] == 105957])
 
-missing = data.drop('delta_t', 1)[deficits].notna().groupby(data.delta_t, sort=False).sum().reset_index()
+missing = data.drop('delta_t', axis=1)[deficits].notna().groupby(data.delta_t, sort=False).sum().reset_index()
 
-missing_background = data.drop('delta_t', 1)[background + medications].notna().groupby(data.delta_t, sort=False).sum().reset_index()
+missing_background = data.drop('delta_t', axis=1)[background + medications].notna().groupby(data.delta_t, sort=False).sum().reset_index()
 
-deaths = data.drop('delta_t', 1)['delta_death_age'].notna().groupby(data.delta_t, sort=False).sum().reset_index()
+deaths = data.drop('delta_t', axis=1)['delta_death_age'].notna().groupby(data.delta_t, sort=False).sum().reset_index()
 
 non_nurse = [0, 3, 4, 8, 9, 10, 11]
 nurse = [1, 2, 5, 6, 7, 12, 13, 14,15,16,17,18,19,20,21,22,23,24,25,26,27,28]
@@ -147,4 +155,4 @@ ax[1].text(-0.13, 0.5, 'Background', horizontalalignment='center', verticalalign
 plt.tight_layout()
 plt.subplots_adjust(hspace=0)
 plt.subplots_adjust(left=0.15)
-plt.savefig('../Plots/missing_values_ELSA.pdf')
+plt.savefig(f'../Plots/missing_values_ELSA{postfix}.pdf')

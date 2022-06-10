@@ -12,7 +12,7 @@ deficits = ['gait speed', 'grip dom', 'grip ndom', 'FI ADL', 'FI IADL', 'chair',
 medications = ['BP med', 'anticoagulent med', 'chol med', 'hip/knee treat', 'lung/asthma med']
         
 background = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'height', 'bmi', 'mobility', 'country',
-              'alcohol', 'jointrep', 'fractures', 'sex', 'ethnicity']
+              'alcohol', 'jointrep', 'fractures', 'ethnicity', 'sex']
 
 
 def build_data_start(full_data, full_times, full_survival, full_env, full_med, M, N, t_length, start, min_count, prune = True):
@@ -50,7 +50,7 @@ def build_data_start(full_data, full_times, full_survival, full_env, full_med, M
     
     zero_mask = np.ones(M, int)
     
-    for i,id in enumerate(range(0,M)):
+    for i,id in enumerate(full_data['id'].unique()):
         
         indiv = full_data.loc[full_data['id'] == id, deficits]
         indiv_times = full_times.loc[full_times['id'] == id, 'age']
@@ -123,7 +123,7 @@ def build_data_start(full_data, full_times, full_survival, full_env, full_med, M
     
     
     zero_mask = zero_mask.astype(bool)
-    
+
     return data[zero_mask], times[zero_mask], death_age[zero_mask], mask[zero_mask], survival_mask[zero_mask], censored[zero_mask], np.concatenate((env[zero_mask], env_mask[zero_mask]),axis=1), np.concatenate((med[zero_mask], med_mask[zero_mask]),axis=2), dead_mask[zero_mask], after_dead_mask[zero_mask], ids[zero_mask]
 
 
@@ -149,11 +149,11 @@ class Dataset(data.Dataset):
             self.list_IDs = np.load(folder + 'IDs.npy')
 
             if name[:3] != '../':
-                self.mean_T, self.std_T = np.load('Data/train_files/' + 'T_stats.npy')
-                orig_data = pd.read_csv('Data/train.csv')[deficits]
+                self.mean_T, self.std_T = np.load(folder + 'T_stats.npy')
+                orig_data = pd.read_csv(name)[deficits]
             else:
-                self.mean_T, self.std_T = np.load('../Data/train_files/' + 'T_stats.npy')
-                orig_data = pd.read_csv('../Data/train.csv')[deficits]
+                self.mean_T, self.std_T = np.load(folder + 'T_stats.npy')
+                orig_data = pd.read_csv(name)[deficits]
             
             self.max_values = torch.Tensor(orig_data[orig_data > -1000].quantile(1.0).values).float()
             self.min_values = torch.Tensor(orig_data[orig_data > -1000].quantile(0.0).values).float()
@@ -179,11 +179,11 @@ class Dataset(data.Dataset):
             self.id_names = np.load(folder + 'id_names.npy')
 
             if name[:3] != '../':
-                self.mean_T, self.std_T = np.load('Data/train_files/' + 'T_stats.npy')
-                orig_data = pd.read_csv('Data/train.csv')[deficits]
+                self.mean_T, self.std_T = np.load(folder + 'T_stats.npy')
+                orig_data = pd.read_csv(name)[deficits]
             else:
-                self.mean_T, self.std_T = np.load('../Data/train_files/' + 'T_stats.npy')
-                orig_data = pd.read_csv('../Data/train.csv')[deficits]
+                self.mean_T, self.std_T = np.load(folder + 'T_stats.npy')
+                orig_data = pd.read_csv(name)[deficits]
             
             self.max_values = torch.Tensor(orig_data[orig_data > -1000].quantile(1.0).values).float()
             self.min_values = torch.Tensor(orig_data[orig_data > -1000].quantile(0.0).values).float()
@@ -197,10 +197,9 @@ class Dataset(data.Dataset):
                 folder = folder[:-1] + '_pop/'
                 os.mkdir(folder)
             
-            orig_data = pd.read_csv(name)
+            orig_data = pd.read_csv(name,usecols=['id', 'wave' , 'age']+deficits+medications+background+['death age'])
             
             num_indiv = len(orig_data['id'].unique())
-            
             t_length = 25
             
             X = orig_data[['id'] + deficits] # health variables
@@ -231,7 +230,6 @@ class Dataset(data.Dataset):
             # create different starting points for training
             for i in range(-1, 10):
                 data_, times_, death_age_, mask_, survival_mask_, censored_, env_, med_time_, dead_mask_, after_dead_mask_, ids_ = build_data_start(X, T, A, E, Med, num_indiv, N, t_length, i, min_count, prune)
-                
                 data.append(data_)
                 times.append(times_)
                 death_age.append(death_age_)
@@ -243,7 +241,6 @@ class Dataset(data.Dataset):
                 dead_mask.append(dead_mask_)
                 after_dead_mask.append(after_dead_mask_)
                 ids.append(ids_)
-            
             
             # concatenate starting points
             num_indiv = sum([data[i].shape[0] for i in range(len(data))])
@@ -259,7 +256,7 @@ class Dataset(data.Dataset):
             dead_mask = np.concatenate(dead_mask, axis = 0)
             after_dead_mask = np.concatenate(after_dead_mask, axis = 0)
             ids = np.concatenate(ids, axis = 0)
-        
+            
             weights = np.ones(ids.shape)
             for i, id in enumerate(ids):
                 count = (ids == id).sum()
@@ -277,9 +274,8 @@ class Dataset(data.Dataset):
             self.dead_mask = torch.from_numpy(dead_mask).float()
             self.after_dead_mask = torch.from_numpy(after_dead_mask).float()
             self.weights = torch.from_numpy(weights).float()
-        
             self.list_IDs = np.arange(num_indiv, dtype = int)
-                
+
             torch.save(self.longitudinal_data, folder + 'longitudinal.pt')
             torch.save(self.times_data, folder + 'times.pt')
             torch.save(self.death_age, folder + 'death_age.pt')

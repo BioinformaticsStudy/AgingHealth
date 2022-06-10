@@ -351,6 +351,7 @@ print("cleaning up data...")
 data['dod'].fillna(-1,inplace=True)
 data['dod'] = data['dod'].astype(int)
 
+data['age'].replace(99,90,inplace=True) #collapsed
 data['age'].replace(-9.0,-1.0,inplace=True) #refuse
 data['age'].replace(-8.0,-1.0,inplace=True) #drop don't know 
 data['age'].replace(-7.0,-1.0,inplace=True) #drop don't know 

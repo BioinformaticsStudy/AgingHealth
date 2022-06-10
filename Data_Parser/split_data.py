@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.utils import resample
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default = 'elsa')
+parser.add_argument('--dataset', type=str,choices=['elsa','sample'], default = 'elsa')
 args = parser.parse_args()
 
 """
