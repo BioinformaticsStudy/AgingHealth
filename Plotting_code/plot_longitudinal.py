@@ -2,7 +2,8 @@ import argparse
 import torch
 import numpy as np
 from scipy.stats import sem
-from pandas import read_csv
+import pandas as pd
+
 
 from torch.utils import data
 
@@ -14,7 +15,6 @@ sys.path.append(str(package_root_directory))
 
 from Utils.transformation import Transformation
 
-from DataLoader.dataset import Dataset
 from DataLoader.collate import custom_collate
 
 import matplotlib.pyplot as plt
@@ -32,18 +32,29 @@ parser.add_argument('--epoch', type=int)
 parser.add_argument('--years', type=int)
 parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa',help='the dataset that was used to train the model; either \'elsa\' or \'sample\'')
 parser.add_argument('--no_compare',action='store_true',help='whether or not to plot the comparison model')
+parser.add_argument('--latentN', type=int, default=None, help='the size of N if plotting the latent model; can be left None if plotting DJIN')
 args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
+model_name = f'latent{args.latentN}' if args.latentN is not None else 'DJIN'
+if args.latentN == None:
+    from DataLoader.dataset import Dataset
+else:
+    from Alternate_models.dataset_dim import Dataset
 
 device = 'cpu'
 
-N = 29
+N = 29 if args.latentN == None else args.latentN
 dt = 0.5
 length = 50
 
-pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+if args.latentN == None:
+    pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+else:
+    pop_avg = np.load(f'../Data/Population_averages{N}{postfix}.npy')
+    pop_avg_env = np.load(f'../Data/Population_averages_env{N}{postfix}.npy')
+    pop_std = np.load(f'../Data/Population_std{N}{postfix}.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -54,10 +65,31 @@ test_set = Dataset(test_name, N, pop=False, min_count = 10)
 num_test = test_set.__len__()
 test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
 
-mean_deficits = read_csv(f'../Data/mean_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
-std_deficits = read_csv(f'../Data/std_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
+if args.latentN == None:
+    mean_deficits = pd.read_csv(f'../Data/mean_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten()
+    std_deficits = pd.read_csv(f'../Data/std_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten()
+    log_scaled_indexes = [23, 15, 16, 25, 26, 28, 6, 7]
+else:
+    mean_deficits = pd.read_csv(f'../Data/mean_deficits_latent.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    std_deficits = pd.read_csv(f'../Data/std_deficits_latent.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    mean_deficits.reset_index(inplace=True,drop=True)
+    std_deficits.reset_index(inplace=True,drop=True)
+    # get indexes of log scaled variables to be used in Transformation
+    log_scaled_variables = ['fer','trig','crp', 'wbc', 'mch', 'vitd', 'dheas','leg raise','full tandem']
+    log_scaled_indexes = []
+    for variable in log_scaled_variables:
+        row = mean_deficits.loc[mean_deficits['variable']==variable]
+        if len(row) > 0:
+            index = row.index[0]
+            log_scaled_indexes.append(index)
+    mean_deficits.drop(['variable'],axis='columns', inplace=True)
+    std_deficits.drop(['variable'],axis='columns', inplace=True)
+    mean_deficits = mean_deficits.values.flatten()
+    std_deficits = std_deficits.values.flatten()
 
-psi = Transformation(mean_deficits[:-3], std_deficits[:-3], [6, 7, 15, 16, 23, 25, 26, 28])
+
+
+psi = Transformation(mean_deficits, std_deficits, log_scaled_indexes)
 
 missing = [[] for i in range(N)]
 notmissing = [[] for i in range(N)]
@@ -75,7 +107,7 @@ linear_notmissing = [[] for i in range(N)]
 collected_t = []
 with torch.no_grad():
 
-    mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+    mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_%s%s.npy'%(args.job_id,args.epoch,model_name,postfix))
     if not args.no_compare:
         linear = np.load(f'../Comparison_models/Predictions/Longitudinal_predictions_baseline_id1_rfmice{postfix}.npy')
     
@@ -86,8 +118,8 @@ with torch.no_grad():
     times = data['times'].numpy()
     mask = data['mask'].numpy()
     sample_weight = data['weights'].numpy()
-    sex_index = data['env'][:,12].long().numpy()
-    
+    num_env = 29+19-N-5
+    sex_index = data['env'][:,num_env-1].long().numpy()
     # transform
     mean[:,:,1:] = psi.untransform(mean[:,:,1:])
     if not args.no_compare:
@@ -217,7 +249,9 @@ RMSE_sort_notmissing[:,0] = np.arange(N)
 notmissing_index = RMSE_sort_notmissing[:,1].argsort()
 RMSE_sort_notmissing = RMSE_sort_notmissing[notmissing_index]
 
-
+averageRMSE = np.mean(RMSE_sort_notmissing[:,1])
+if not args.no_compare:
+    averageLinear = np.mean(RMSE_sort_notmissing[:,4])
 
 #####MISSING
 fig,ax = plt.subplots(figsize=(6.2,5))
@@ -272,7 +306,7 @@ ax.plot([0,N+3],[1,1], color='k', linestyle='--', zorder=-1000, linewidth = 0.75
 
 ax.set_ylabel(r'Relative RMSE',fontsize = 12)
 ax.set_xlim(0, N+1)
-ax.set_ylim(0.55, 1.5)
+ax.set_ylim(0.65, 1.5)
 
 ax.set_xticklabels(np.array(deficits_small)[RMSE_sort_notmissing[:,0].astype(int)], rotation = 90)
 ax.set_xticks(np.arange(1, N+1))
@@ -287,3 +321,9 @@ ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
 plt.tight_layout()
 plt.savefig('../Plots/Longitudinal_RMSE_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+
+# average
+with open(f'../Analysis_Data/average_RMSE_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
+    outfile.writelines(str(averageRMSE))
+    if not args.no_compare:
+        outfile.writelines(',' + str(averageLinear))

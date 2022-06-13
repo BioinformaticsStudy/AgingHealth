@@ -11,7 +11,6 @@ file = Path(__file__). resolve()
 package_root_directory = file.parents [1]  
 sys.path.append(str(package_root_directory))  
 
-from DataLoader.dataset import Dataset
 from DataLoader.collate import custom_collate
 from Utils.cindex import cindex_td
 
@@ -29,14 +28,22 @@ parser.add_argument('--epoch', type=int)
 parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa',help='the dataset that was used to train the model; either \'elsa\' or \'sample\'')
 parser.add_argument('--no_compare',action='store_true',help='whether or not to plot the comparison model')
 parser.add_argument('--minscore', type=float, default=None, help='minimum brier score showed on plot')
+parser.add_argument('--latentN', type=int, default=None, help='N if plotting latent model; can be left None if plotting DJIN')
 parser.add_argument('--compare_id',type=int)
 args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
+model_name = 'DJIN' if args.latentN==None else f'latent{args.latentN}'
+
+if args.latentN == None:
+    from DataLoader.dataset import Dataset
+else:
+    from Alternate_models.dataset_dim import Dataset
+
 
 
 device = 'cpu'
 
-N = 29
+N = 29 if args.latentN==None else args.latentN
 dt = 0.5
 length = 50
 
@@ -54,7 +61,7 @@ test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = Fals
 
 with torch.no_grad():
     
-    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_%s%s.npy'%(args.job_id,args.epoch,model_name,postfix))
     
     if not args.no_compare: 
         linear = np.load(f'../Comparison_models/Predictions/Survival_trajectories_baseline_id{args.compare_id}_rfmice{postfix}.npy')
@@ -111,7 +118,6 @@ BS_S = np.zeros(bin_centers.shape)
 BS_S_count = np.zeros(bin_centers.shape)
 
 for i in range(len(survival_ages)):
-
     # die
     if censored[i] == 0:
         ages = survival_ages[i, ~np.isnan(survival_ages[i])]
@@ -135,11 +141,12 @@ for i in range(len(survival_ages)):
         
         G_i[G_i < 1e-5] = np.nan
         
-        BS += binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = np.nansum)[0]
-        BS_count += binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = 'count')[0]
+        if len(ages[~np.isnan(G_i)]) != 0:
+            BS += binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = np.nansum)[0]
+            BS_count += binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = 'count')[0]
 
-        BS_S += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = np.sum)[0]
-        BS_S_count += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = 'count')[0]
+            BS_S += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = np.sum)[0]
+            BS_S_count += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = 'count')[0]
     
     else:
         ages = survival_ages[i, ~np.isnan(survival_ages[i])]
@@ -163,11 +170,12 @@ for i in range(len(survival_ages)):
         
         G_i[G_i < 1e-5] = np.nan
 
-        BS += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = np.nansum)[0]
-        BS_count += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask-prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = 'count')[0]
-
-        BS_S += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - S_i)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = np.nansum)[0]
-        BS_S_count += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - S_i)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = 'count')[0]
+        if len(ages[~np.isnan(G_i)]) != 0:
+            BS += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = np.nansum)[0]
+            BS_count += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask-prob)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = 'count')[0]
+            
+            BS_S += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - S_i)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = np.nansum)[0]
+            BS_S_count += sample_weight[i]*binned_statistic(ages[~np.isnan(G_i)], ((mask - S_i)**2/G_i)[~np.isnan(G_i)], bins = np.arange(30.5, 130.5, 1), statistic = 'count')[0]
 
 if not args.no_compare:
     BS_linear = np.zeros(bin_centers.shape)
@@ -243,10 +251,10 @@ if not args.no_compare:
 min_death_age = death_ages[censored==0].min()
 max_death_age = death_ages[censored==0].max()
 
+
 IBS = np.trapz(y = BS_t[ (bin_centers>=min_death_age) & (bin_centers<=max_death_age) ], x = bin_centers[ (bin_centers>=min_death_age) & (bin_centers<=max_death_age) ])/(max_death_age-min_death_age)
 if not args.no_compare:
     IBS_linear = np.trapz(y = BS_linear_t[ (bin_centers>=min_death_age) & (bin_centers<=max_death_age) ], x = bin_centers[ (bin_centers>=min_death_age) & (bin_centers<=max_death_age) ])/(max_death_age-min_death_age)
-
 ax.text(.84, 0.55, r'IBS = %.2f'%IBS, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes, color=cm(0),fontsize = 14, zorder=1000000)
 
 if not args.no_compare:
@@ -268,3 +276,8 @@ plt.yscale('log')
 plt.legend(loc = 'lower right')
 plt.tight_layout()
 plt.savefig('../Plots/Brier_score_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+
+with open(f'../Analysis_Data/IBS_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
+    outfile.writelines(str(IBS))
+    if not args.no_compare:
+        outfile.writelines(',' + str(IBS_linear))

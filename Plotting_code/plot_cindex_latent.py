@@ -25,11 +25,15 @@ parser.add_argument('--start', type=int,default=2,help='lowest N')
 parser.add_argument('--step', type=int, default=5,help='difference in N between models')
 parser.add_argument('--stop', type=int,default=35,help='highest N')
 parser.add_argument('--dataset', type=str, default='elsa',choices=['elsa','sample'],help='what dataset was used to train the models')
+parser.add_argument('--djin_id',type=int,default=None)
+parser.add_argument('--djin_epoch',type=int,default=None)
 args = parser.parse_args()
 
+djin_compare = args.djin_id != None and args.djin_epoch != None
 postfix = '_sample' if args.dataset=='sample' else ''
 test_name = f'../Data/test{postfix}.csv'
 
+# latent
 Ns = list(np.arange(args.start,args.stop,args.step)) + [args.stop]
 results = pd.DataFrame(index=Ns,columns=['C-index'])
 
@@ -44,9 +48,8 @@ for N in Ns:
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
 
     min_count = N // 3
-    if min_count < 1:
-        prune=False
-    test_set = Dataset(test_name, N,  pop=False, min_count=min_count,prune=prune)
+    prune = min_count >= 1
+    test_set = Dataset(test_name, N,  pop=False,prune=prune,min_count=min_count)
     num_test = test_set.__len__()
     test_generator = DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
     for data in test_generator:
@@ -62,13 +65,38 @@ for N in Ns:
     cindex = cindex_td(death_ages, survival[:,:,1], survival[:,:,0], 1 - censored)
     results['C-index'][N] = cindex
 
+# djin and latent
+if djin_compare:
+    with open(f'../Analysis_Data/overall_cindex_job_id{args.djin_id}_epoch{args.djin_epoch}{postfix}.txt','r') as infile:
+        lines = infile.readlines()[0].split(',')
+        djin_cindex = float(lines[0])
+        if len(lines) > 1:
+            linear_cindex = float(lines[1])
+        else:
+            linear_cindex = None
 
+
+#plotting 
 results.index.name = 'N'
 results.reset_index(inplace=True)    
 plot = sns.scatterplot(data=results,x='N',y='C-index')
 plot.set_xlabel('Model dimension')
 plot.set_ylabel('Survival C-index')
 plt.ylim(.5,1)
+plt.xlim(0,args.stop)
+if djin_compare:
+    custom_legend = []
+    labels = []
+    plt.scatter(x=29,y=djin_cindex,color='r')
+    custom_legend.append(plt.Line2D([], [], marker='o', color='r', linestyle='None'))
+    labels.append('DJIN model')
+    if linear_cindex is not None:
+        plt.plot([0,args.stop],[linear_cindex,linear_cindex],linestyle='--',color='g')
+        custom_legend.append(plt.Line2D([], [], color='g', linestyle='--'))
+        labels.append('Elastic-net Cox model')
+    plt.legend(custom_legend, labels)
+
+
 fig = plot.get_figure()
 fig.savefig(f'../Plots/latent_cindex_by_dim_job_id{args.job_id}_epoch{args.epoch}{postfix}.pdf')
 

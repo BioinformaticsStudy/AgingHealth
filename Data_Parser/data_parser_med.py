@@ -86,7 +86,7 @@ for i,f in enumerate(files):
 print('data read')
 
 print("cleaning data...")
-waves[5]['indager'].replace(-7.0,90,inplace=True) #why only do this for wave 5?
+waves[5]['indager'].replace(-7.0,90,inplace=True) 
 
 # replace nans
 indexes = [[] for w in range(len(waves))]

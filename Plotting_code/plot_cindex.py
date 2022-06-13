@@ -10,7 +10,6 @@ file = Path(__file__). resolve()
 package_root_directory = file.parents [1]  
 sys.path.append(str(package_root_directory))  
 
-from DataLoader.dataset import Dataset
 from DataLoader.collate import custom_collate
 from Utils.cindex import cindex_td
 
@@ -35,10 +34,15 @@ args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
 
 model_name = f'latent{args.latentN}' if args.latentN is not None else 'DJIN'
+if args.latentN == None:
+    from DataLoader.dataset import Dataset
+else:
+    from Alternate_models.dataset_dim import Dataset
+
 
 device = 'cpu'
 
-N = 29
+N = 29 if args.latentN == None else args.latentN
 dt = 0.5
 length = 50
 
@@ -105,13 +109,14 @@ if not args.no_compare:
 #### Plot C index
 fig,ax = plt.subplots(figsize=(4.5,4.5))
     
-print(c_index_list)
+overall_cindex = cindex_td(death_ages, survival[:,:,1], survival[:,:,0], 1 - censored)
 plt.plot(bin_centers, c_index_list, marker = 'o',color=cm(0), markersize=8, linestyle = '', label = f'{model_name} model')
-plt.plot(bin_centers, cindex_td(death_ages, survival[:,:,1], survival[:,:,0], 1 - censored)*np.ones(bin_centers.shape), color = cm(0), linewidth = 2.5, label = '')
+plt.plot(bin_centers, overall_cindex*np.ones(bin_centers.shape), color = cm(0), linewidth = 2.5, label = '')
 
 if not args.no_compare:
+    overall_cindex_linear = cindex_td(death_ages, linear[:,:,1], survival[:,:,0], 1 - censored)
     plt.plot(bin_centers, c_index_linear, marker = 's',color=cm(2), markersize=7, linestyle = '', label = 'Elastic-net Cox model')
-    plt.plot(bin_centers, cindex_td(death_ages, linear[:,:,1], survival[:,:,0], 1 - censored)*np.ones(bin_centers.shape), color = cm(2), linewidth = 2.5, label = '', linestyle = '--')
+    plt.plot(bin_centers, overall_cindex_linear*np.ones(bin_centers.shape), color = cm(2), linewidth = 2.5, label = '', linestyle = '--')
 
 print(cindex_td(death_ages, survival[:,:,1], survival[:,:,0], 1 - censored))
 
@@ -131,3 +136,8 @@ ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
 plt.tight_layout()
 plt.savefig('../Plots/Survival_Cindex_job_id%d_epoch%d_%s%s.pdf'%(args.job_id, args.epoch,model_name,postfix))
+
+with open(f'../Analysis_Data/overall_cindex_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
+    outfile.writelines(str(overall_cindex))
+    if not args.no_compare:
+        outfile.writelines(',' + str(overall_cindex_linear))

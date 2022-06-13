@@ -102,7 +102,6 @@ print("all files read")
 # handling collapsed dob
 waves[0]['dhdobyr'].replace(-7.0,1912.0,inplace=True)
 waves[1]['dhdobyr'].replace(-7.0,1914.0,inplace=True)
-#why not do this for all the other years?
 
 
 #waves 1 and 2

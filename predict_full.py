@@ -32,7 +32,7 @@ def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nfl
 
     test_name = f'Data/test{postfix}.csv'
     min_count = N // 3
-    prune = min_count > 1
+    prune = min_count >= 1
 
     test_set = Dataset(test_name, N, pop=False, min_count=min_count,prune=prune)
     num_test = 400
@@ -41,11 +41,14 @@ def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nfl
     mean_T = test_set.mean_T
     std_T = test_set.std_T
 
-    model = Model(device, N, gamma_size, z_size, decoder_size, Nflows, flow_hidden, mean_T, std_T, dt).to(device)
+    model = Model(device, N, gamma_size, z_size, decoder_size, Nflows, flow_hidden, mean_T, std_T, dt,length=length).to(device)
     model.load_state_dict(torch.load('Parameters/train%d_Model%d_latent_epoch%d%s.params'%(job_id,N, epoch,postfix),map_location=device))
     model = model.eval()
 
+    mean_results = np.zeros((test_set.__len__(), 100, N+1)) * np.nan
+    std_results = np.zeros((test_set.__len__(), 100, N+1)) * np.nan
     S_results = np.zeros((test_set.__len__(), 100, 3)) * np.nan
+    
 
     with torch.no_grad():
         
@@ -55,21 +58,27 @@ def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nfl
             print(f'predicting batch {i}')
             size = data['Y'].shape[0]
 
-            X = torch.zeros(sims, size, length, N).to(device)
-            S = torch.zeros(sims, size, length).to(device)
+            X = torch.zeros(sims, size, int(length/dt), N).to(device)
+            X_std = torch.zeros(sims, size, int(length/dt), N).to(device)
+            S = torch.zeros(sims, size, int(length/dt)).to(device)
+            alive = torch.ones(sims, size, int(length/dt)).to(device)
             for s in range(sims):
                 sigma_y = sigma_posterior.sample((data['Y'].shape[0], length*2))
+                
 
                 pred_X, pred_Z, t, pred_S, pred_logGamma, pred_sigma_X, context,\
                 y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, \
                 sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, mask0 = model(data, sigma_y, test=True)
-
+                
                 X[s] = pred_X
+                X_std[s] = pred_X + sigma_y*torch.randn_like(pred_X)
                 S[s] = pred_S.exp()
+                alive[s,:,1:] = torch.cumprod(torch.bernoulli(torch.exp(-1*pred_logGamma.exp()[:,:-1]*dt)), dim=1)
 
             t0 = t[:,0]
             record_times = [torch.from_numpy(np.arange(t0[b].cpu(), 121, 1)).to(device) for b in range(size)]
             X_record, S_record = record(t, X, S, record_times, dt)
+            X_std_record, alive_record = record(t, X_std, alive, record_times, dt)
             t0 = t0.cpu()
 
             X_sum = []
@@ -78,12 +87,25 @@ def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nfl
             X_count = []
 
             for b in range(size):
+                X_sum.append(torch.sum(X_record[b].permute(2,0,1)*alive_record[b], dim = 1).cpu())
+                X_sum_std.append(torch.sum(X_std_record[b].permute(2,0,1)*alive_record[b], dim = 1).cpu())
+                X_sum2.append(torch.sum(X_std_record[b].pow(2).permute(2,0,1)*alive_record[b], dim = 1).cpu())
+                X_count.append(torch.sum(alive_record[b], dim = 0).cpu())
+
+            for b in range(size):
+                mean_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
+                std_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
                 S_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
+
+                mean_results[start+b, :X_sum[b].shape[1], 1:] = (X_sum[b]/X_count[b]).permute(1,0).numpy()
+                std_results[start+b, :X_sum_std[b].shape[1], 1:] = np.sqrt((X_sum2[b]/X_count[b] - (X_sum_std[b]/X_count[b]).pow(2)).permute(1,0).numpy())
                 S_results[start+b, :len(np.arange(t0[b], 121, 1)), 1] = torch.mean(S_record[b], dim = 0)
                 S_results[start+b, :len(np.arange(t0[b], 121, 1)), 2] = torch.std(S_record[b], dim = 0)
 
             start += size
-        
+    
+    np.save('Analysis_Data/Mean_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(job_id, epoch, N,postfix), mean_results)
+    np.save('Analysis_Data/Std_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(job_id, epoch, N,postfix), std_results)
     np.save('Analysis_Data/Survival_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(job_id, epoch, N, postfix), S_results)
 
 if __name__=='__main__':

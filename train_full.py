@@ -53,7 +53,6 @@ def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_s
         hf.writelines('Nflows, %d\n'%Nflows)
         hf.writelines('flow_hidden, %d\n'%flow_hidden)
 
-    batch_size = batch_size
     dt = 0.5
 
     pop_avg = np.load(f'Data/Population_averages{N}{postfix}.npy')

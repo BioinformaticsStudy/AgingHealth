@@ -27,6 +27,7 @@ args = parser.parse_args()
 Ns = list(np.arange(args.start,args.end,args.step)) + [args.end]
 
 for N in Ns:
+    print('*'*100 + f'\npredicting model with N={N}\n' + '*'*100)
     predict_full.predict(args.job_id,args.epoch,args.epoch+1,args.learning_rate,args.gamma_size,args.z_size,args.decoder_size,args.Nflows,args.flow_hidden,args.dataset,N)
 
 

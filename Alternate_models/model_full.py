@@ -91,7 +91,7 @@ class Model(nn.Module):
         t, pred_Z, pred_S, pred_logGamma, pred_sigma_X = self.solver._solve(self.dynamics, z_sample, t0, batch_size, context, h)
         
         trans_t = (t - self.mean_T)/self.std_T
-
+        
         pred_X  = self.impute.decoder(torch.cat((pred_Z, trans_t.unsqueeze(-1), context_full), dim=-1))
         
         recon_mean_x0 = pred_X[:,0]

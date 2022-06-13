@@ -39,10 +39,13 @@ class CustomBatch:
         self.predict_missing = pop_avg[sex_index, t0_index]
         self.pop_std = pop_std[sex_index, t0_index]
 
-        print(pop_avg_env.size())
         predict_missing_env = pop_avg_env[sex_index, t0_index]
+        bmi_index = num_env-3
+        height_index = num_env-4
 
-        self.env[:,[5,6]] = self.env[:,[5,6]]*self.env[:,[5+num_env,6+num_env]] + (1 - self.env[:,[5+num_env,6+num_env]])*predict_missing_env
+
+        #filling in missing height and bmi data with average
+        self.env[:,[height_index,bmi_index]] = self.env[:,[height_index,bmi_index]]*self.env[:,[height_index+num_env,bmi_index+num_env]] + (1 - self.env[:,[height_index+num_env,bmi_index+num_env]])*predict_missing_env
         
     def __getbatch__(self):
         return {'Y': self.X, 'times': self.times,

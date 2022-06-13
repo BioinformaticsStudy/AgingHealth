@@ -11,8 +11,8 @@ deficits = ['gait speed', 'grip dom', 'grip ndom', 'FI ADL', 'FI IADL', 'chair',
         
 medications = ['BP med', 'anticoagulent med', 'chol med', 'hip/knee treat', 'lung/asthma med']
         
-background = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'height', 'bmi', 'mobility', 'country',
-              'alcohol', 'jointrep', 'fractures', 'ethnicity', 'sex']
+background = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'mobility', 'country',
+              'alcohol', 'jointrep', 'fractures' , 'height', 'bmi', 'ethnicity','sex']
 
 
 def build_data_start(full_data, full_times, full_survival, full_env, full_med, M, N, t_length, start, min_count, prune = True):

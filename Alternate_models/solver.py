@@ -13,20 +13,19 @@ class SolveSDE(nn.Module):
         
         self.dt = dt
         self.num_t = int(length/dt)
-    
+
     def _solve(self, model, x0, t0, M, context, h):
 
         X = torch.zeros((M, self.num_t, self.N)).to(self.device)
         log_S = torch.zeros((M, self.num_t)).to(self.device)
         log_Gammas = torch.zeros((M, self.num_t)).to(self.device)
         sigma_xs = torch.zeros((M, self.num_t, self.N)).to(self.device)
-
         times = torch.zeros((M, self.num_t)).to(self.device)
         
         X[:,0,:] = x0
         times[:,0] = t0
         log_Gammas[:,0] = -1e5
-        
+
         for i in range(1, self.num_t):
             
             dx,  log_dS, log_Gamma, h, sigma_x = model(X[:, i-1, :], h, times[:,i-1], context)

@@ -60,6 +60,8 @@ for batch_data, batch_times, batch_mask, batch_survival_mask, batch_dead_mask, _
     env_times = batch_times.numpy()[:,0]
     num_env = 29+19-N-5 # total variables - deficits - medications
     sex_index = num_env-1
+    bmi_index = num_env-3
+    height_index = num_env-4
     
     for sex in [0,1]:
         
@@ -70,7 +72,7 @@ for batch_data, batch_times, batch_mask, batch_survival_mask, batch_dead_mask, _
         curr_data = data[selected].reshape(size, N)
         curr_mask = mask[selected].reshape(size, N)
         
-        for evid, ev in enumerate([5,6]):
+        for evid, ev in enumerate([height_index,bmi_index]):
             avg_env[sex, 3:-4, evid] = binned_statistic(env_times[selected][env[selected, ev]>-100], env[selected][env[selected, ev]>-100, ev], bins = age_bins)[0][3:-4]
         
             avg_env_smooth[sex, 3:-4, evid] = savgol_filter(avg_env[sex, 3:-4, evid], 9, 3)
