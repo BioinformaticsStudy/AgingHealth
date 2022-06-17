@@ -2,7 +2,7 @@ import argparse
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from os import getcwd
+import os
 
 # generates a file containing the variables to be used by train_full sorted according to 
 # the amount of individuals that have more than one different unique value for that variable
@@ -20,7 +20,8 @@ variables = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'mobility', 'c
               'mch', 'hba1c', 'vitd']
 
 
-data = pd.read_csv(f'{getcwd()}/Data/ELSA_cleaned.csv')[['id'] + variables]
+dir = os.path.dirname(os.path.realpath(__file__))
+data = pd.read_csv(f'{dir}/Data/ELSA_cleaned.csv')[['id'] + variables]
 
 # calculating how much variables change
 changes = pd.DataFrame(index=variables, columns=['count','label'])
@@ -44,7 +45,7 @@ plot = sns.barplot(data=changes, x='count', y='variable', hue='label', orient='h
 plot.set_xlabel('Number of individuals with more than one value')
 fig = plot.get_figure()
 fig.tight_layout()
-fig.savefig(f'{getcwd()}/Plots/change_distribution{args.N}.pdf')
+fig.savefig(f'{dir}/Plots/change_distribution{args.N}.pdf')
 
 #creating mean_deficits and std_deficits
 means = pd.Series(index=variables)
@@ -52,11 +53,11 @@ stds = pd.Series(index=variables)
 for d in variables:
     means[d] = data.loc[data[d]>-100,d].mean()
     stds[d] = data.loc[data[d]>-100,d].std()
-means.to_csv(f'{getcwd()}/Data/mean_deficits_latent.txt')
-stds.to_csv(f'{getcwd()}/Data/std_deficits_latent.txt')
+means.to_csv(f'{dir}/Data/mean_deficits_latent.txt')
+stds.to_csv(f'{dir}/Data/std_deficits_latent.txt')
 
 #creating variables.txt
-with open(f'{getcwd()}/Data/variables.txt','w') as outfile:
+with open(f'{dir}/Data/variables.txt','w') as outfile:
     for variable in changes['variable']:
         outfile.writelines(variable + ',')
     outfile.writelines('alcohol,height,bmi,ethnicity,sex')

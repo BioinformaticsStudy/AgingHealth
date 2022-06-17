@@ -2,11 +2,13 @@
 
 import pandas as pd
 import numpy as np
-from os import getcwd
+import os
 
 print("preparing medication data...")
 
-folder = getcwd() + "/../../ELSA/tab/"
+dir = os.path.dirname(os.path.realpath(__file__))
+
+folder = dir + "/../../ELSA/tab/"
 files = ["wave_0_1998_data.tab", "wave_0_1999_data.tab", "wave_0_2001_data.tab", 
         "wave_1_core_data_v3.tab", "wave_2_core_data_v4.tab","wave_3_elsa_data_v4.tab", 
         "wave_4_elsa_data_v3.tab","wave_5_elsa_data_v4.tab","wave_6_elsa_data_v2.tab", 

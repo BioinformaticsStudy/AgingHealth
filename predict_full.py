@@ -16,7 +16,7 @@ from Utils.record import record
 def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nflows,flow_hidden,dataset,N):
     postfix = f'_latent{N}_sample' if dataset == 'sample' else f'_latent{N}'
     repository = os.path.dirname(os.path.realpath(__file__))
-
+  
     torch.set_num_threads(6)
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

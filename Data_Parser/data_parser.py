@@ -2,12 +2,13 @@
 # imputes some predictable values
 
 import pandas as pd
-from os import getcwd
+import os
 import numpy as np
 
 
 print("parsing data...")
-folder = getcwd() + "/../../ELSA/tab/"
+dir = os.path.dirname(os.path.realpath(__file__))
+folder = dir + "/../../ELSA/tab/"
 
 # Files containing health and background data. File naming conventions vary.
 files = ["wave_0_1998_data.tab", "wave_0_1999_data.tab", "wave_0_2001_data.tab", 

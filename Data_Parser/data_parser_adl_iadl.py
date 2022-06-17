@@ -1,12 +1,12 @@
 # handles adl and iadl calculations for data_parser.py
 
-from os import getcwd
+import os
 import pandas as pd
 import numpy as np
 
 print("preparing adl and iadl data...")
-
-folder = getcwd() + "/../../ELSA/tab/"
+dir = os.path.dirname(os.path.realpath(__file__))
+folder = dir + "/../../ELSA/tab/"
 
 files = ["wave_1_core_data_v3.tab","wave_2_core_data_v4.tab","wave_3_elsa_data_v4.tab",
          "wave_4_elsa_data_v3.tab","wave_5_elsa_data_v4.tab","wave_6_elsa_data_v2.tab",
