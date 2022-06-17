@@ -1,3 +1,5 @@
+# plots the average relative RMSE scores of latent models by N
+
 from pathlib import Path
 import sys
 file = Path(__file__). resolve()  
@@ -27,7 +29,6 @@ parser.add_argument('--djin_id',type=int,default=None)
 parser.add_argument('--djin_epoch',type=int,default=None)
 args = parser.parse_args()
 
-postfix = '_sample' if args.dataset=='sample' else ''
 djin_compare = args.djin_id != None and args.djin_epoch != None
 device = 'cpu'
 
@@ -36,12 +37,14 @@ length = 50
 
 
 # latent calculations
-Ns = list(np.arange(args.start,args.stop,args.step)) + [args.stop]
+Ns = list(np.arange(args.start,args.stop,args.step)) + [args.stop] #+ [29]
 results = pd.DataFrame(index=Ns,columns=['Mean RMSE']) 
 for N in Ns:
-    pop_avg = np.load(f'../Data/Population_averages{N}{postfix}.npy')
-    pop_avg_env = np.load(f'../Data/Population_averages_env{N}{postfix}.npy')
-    pop_std = np.load(f'../Data/Population_std{N}{postfix}.npy')
+    postfix = f'_latent{N}_sample' if args.dataset=='sample' else f'_latent{N}'
+
+    pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'../Data/Population_std{postfix}.npy')
     pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
     pop_avg_env = torch.from_numpy(pop_avg_env).float()
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -55,8 +58,8 @@ for N in Ns:
     num_test = test_set.__len__()
     test_generator = DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
 
-    mean_deficits = pd.read_csv(f'../Data/mean_deficits_latent.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
-    std_deficits = pd.read_csv(f'../Data/std_deficits_latent.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    mean_deficits = pd.read_csv(f'../Data/mean_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    std_deficits = pd.read_csv(f'../Data/std_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
     mean_deficits.reset_index(inplace=True,drop=True)
     std_deficits.reset_index(inplace=True,drop=True)
 
@@ -84,7 +87,7 @@ for N in Ns:
     pop_notmissing = [[] for i in range(N)]
     collected_t = []
 
-    mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(args.job_id, args.epoch, N, postfix))
+    mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id, args.epoch, postfix))
     
     for data in test_generator:
         break
@@ -157,11 +160,13 @@ for N in Ns:
 
     RMSE_notmissing = RMSE_notmissing / RMSE_pop_notmissing
     averageRMSE = np.mean(RMSE_notmissing)
+    print(averageRMSE)
     results['Mean RMSE'][N] = averageRMSE
 
 # djin and linear
 if djin_compare:
-    with open(f'../Analysis_Data/average_RMSE_job_id{args.djin_id}_epoch{args.djin_epoch}{postfix}.txt','r') as infile:
+    djin_dataset = '_sample' if args.dataset=='sample' else ''
+    with open(f'../Analysis_Data/average_RMSE_job_id{args.djin_id}_epoch{args.djin_epoch}{djin_dataset}.txt','r') as infile:
         lines = infile.readlines()[0].split(',')
         djin_avg = float(lines[0])
         if len(lines) > 1:
@@ -182,16 +187,17 @@ if djin_compare:
     custom_legend.append(plt.Line2D([], [], marker='o', color='r', linestyle='None'))
     labels.append('DJIN model')
     if linear_avg is not None:
-        plt.plot([0,args.stop],[linear_avg,linear_avg],linestyle='--',color='g')
+        plt.plot([0,args.stop+1],[linear_avg,linear_avg],linestyle='--',color='g')
         custom_legend.append(plt.Line2D([], [], color='g', linestyle='--'))
         labels.append('Elastic-net Cox model')
     plt.legend(custom_legend, labels)
 
 plot.set_ylim(.6,1)
-plot.set_xlim(0,args.stop)
+plot.set_xlim(0,args.stop+1)
 plot.set_xlabel('Model dimension')
 plot.set_ylabel('Mean Relative RMSE')
 fig = plot.get_figure()
+postfix = '_sample' if args.dataset=='sample' else ''
 fig.savefig(f'../Plots/latent_RMSE_by_dim_job_id{args.job_id}_epoch{args.epoch}{postfix}.pdf')
 
 

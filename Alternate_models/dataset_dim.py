@@ -1,11 +1,11 @@
+# dataset class that can have varying N, intended to be used by the latent space model
+
 import torch
 from torch.utils import data
 import numpy as np
 import pandas as pd
 import os
 import sys
-
-# dataset class that can have varying N
 
 def build_data_start(full_data, full_times, full_survival, full_env, full_med, deficit_names, background_names, medication_names, M, N, t_length, start, min_count, prune = True):
     print(f"building data at starting point {start}")
@@ -121,7 +121,7 @@ def build_data_start(full_data, full_times, full_survival, full_env, full_med, d
 class Dataset(data.Dataset):
 
     def __init__(self, name, N, pop = False, prune = True, min_count = 1):
-        folder = name.rstrip('.csv') + str(N) + '_files/'
+        folder = name.rstrip('.csv') + '_files/'
         alternate_models_folder = os.path.dirname(os.path.realpath(__file__))
         with open(f'{alternate_models_folder}/../Data/variables.txt','r') as varfile:
             variables = varfile.readline().replace('\n','').split(',')

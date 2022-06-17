@@ -1,3 +1,5 @@
+#custom collate for DataLoader
+
 import torch
 import torch.nn as nn
 import numpy as np

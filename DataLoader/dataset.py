@@ -1,3 +1,6 @@
+# custom dataset for storing data
+# data augmented by replicating individuals at multiple starting points
+
 import torch
 from torch.utils import data
 import numpy as np

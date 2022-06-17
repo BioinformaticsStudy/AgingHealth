@@ -24,7 +24,9 @@ parser.add_argument('--step', type=int, default=5, help='difference between numb
 parser.add_argument('--end', type=int, default=35, help='N for the final model')
 args = parser.parse_args()
 
-Ns = list(np.arange(args.start,args.end,args.step)) + [args.end]
+Ns = list(np.arange(args.start,args.end,args.step))
+if args.end not in Ns: 
+    Ns.append(args.end)
 
 for N in Ns:
     print('*'*100 + f'\npredicting model with N={N}\n' + '*'*100)

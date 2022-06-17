@@ -1,3 +1,6 @@
+# makes predictions with trained djin model, requires job_id and epoch to be specified
+# results saved to Analysis_Data
+
 import argparse
 import torch
 from torch.nn import functional as F

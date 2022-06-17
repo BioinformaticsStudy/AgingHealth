@@ -1,3 +1,5 @@
+# plots relative RMSE of each health variable
+
 import argparse
 import torch
 import numpy as np
@@ -34,8 +36,10 @@ parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa
 parser.add_argument('--no_compare',action='store_true',help='whether or not to plot the comparison model')
 parser.add_argument('--latentN', type=int, default=None, help='the size of N if plotting the latent model; can be left None if plotting DJIN')
 args = parser.parse_args()
-postfix = '_sample' if args.dataset == 'sample' else ''
-model_name = f'latent{args.latentN}' if args.latentN is not None else 'DJIN'
+postfix = '' if args.latentN == None else f'_latent{args.latentN}'
+if args.dataset == 'sample': 
+    postfix += '_sample'
+
 if args.latentN == None:
     from DataLoader.dataset import Dataset
 else:
@@ -47,14 +51,9 @@ N = 29 if args.latentN == None else args.latentN
 dt = 0.5
 length = 50
 
-if args.latentN == None:
-    pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-    pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-    pop_std = np.load(f'../Data/Population_std{postfix}.npy')
-else:
-    pop_avg = np.load(f'../Data/Population_averages{N}{postfix}.npy')
-    pop_avg_env = np.load(f'../Data/Population_averages_env{N}{postfix}.npy')
-    pop_std = np.load(f'../Data/Population_std{N}{postfix}.npy')
+pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
+pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
+pop_std = np.load(f'../Data/Population_std{postfix}.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -70,8 +69,8 @@ if args.latentN == None:
     std_deficits = pd.read_csv(f'../Data/std_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten()
     log_scaled_indexes = [23, 15, 16, 25, 26, 28, 6, 7]
 else:
-    mean_deficits = pd.read_csv(f'../Data/mean_deficits_latent.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
-    std_deficits = pd.read_csv(f'../Data/std_deficits_latent.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    mean_deficits = pd.read_csv(f'../Data/mean_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    std_deficits = pd.read_csv(f'../Data/std_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
     mean_deficits.reset_index(inplace=True,drop=True)
     std_deficits.reset_index(inplace=True,drop=True)
     # get indexes of log scaled variables to be used in Transformation
@@ -107,7 +106,11 @@ linear_notmissing = [[] for i in range(N)]
 collected_t = []
 with torch.no_grad():
 
-    mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_%s%s.npy'%(args.job_id,args.epoch,model_name,postfix))
+    if args.latentN == None:
+        mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+    else:
+        mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id,args.epoch,postfix))
+
     if not args.no_compare:
         linear = np.load(f'../Comparison_models/Predictions/Longitudinal_predictions_baseline_id1_rfmice{postfix}.npy')
     
@@ -256,9 +259,15 @@ if not args.no_compare:
 #####MISSING
 fig,ax = plt.subplots(figsize=(6.2,5))
 
-deficits_small = np.array(['Gait speed', 'Dom Grip strength', 'Non-dom grip str', 'ADL score','IADL score', 'Chair rises','Leg raise','Full tandem stance', 'Self-rated health', 'Eyesight','Hearing', 'Walking ability', 'Diastolic blood pressure', 'Systolic blood pressure', 'Pulse', 'Triglycerides','C-reactive protein','HDL cholesterol','LDL cholesterol','Glucose','IGF-1','Hemoglobin','Fibrinogen','Ferritin', 'Total cholesterol', r'White blood cell count', 'MCH', 'Glycated hemoglobin', 'Vitamin-D'])
+if args.latentN is None:
+    deficits_small = np.array(['Gait speed', 'Dom Grip strength', 'Non-dom grip str', 'ADL score','IADL score', 'Chair rises','Leg raise','Full tandem stance', 'Self-rated health', 'Eyesight','Hearing', 'Walking ability', 'Diastolic blood pressure', 'Systolic blood pressure', 'Pulse', 'Triglycerides','C-reactive protein','HDL cholesterol','LDL cholesterol','Glucose','IGF-1','Hemoglobin','Fibrinogen','Ferritin', 'Total cholesterol', r'White blood cell count', 'MCH', 'Glycated hemoglobin', 'Vitamin-D'])
+else:
+    with open('../Data/variables.txt','r') as varfile:
+        vars = varfile.readlines()[0].split(',')
+    deficits_small = np.array(vars[:args.latentN])
 
-ax.errorbar(np.arange(N)+1, RMSE_sort_missing[:,1], marker = 'o',color = cm(0),markersize = 6, linestyle = '', label = 'DJIN model', zorder= 10000000)
+model_name = 'DJIN model' if args.latentN is None else 'latent space model'
+ax.errorbar(np.arange(N)+1, RMSE_sort_missing[:,1], marker = 'o',color = cm(0),markersize = 6, linestyle = '', label = model_name, zorder= 10000000)
 
 ax.errorbar(np.arange(N)+1, RMSE_sort_missing[:,4], marker = 'D',color = cm(1), markersize = 5, linestyle = '', label = 'Static model imputed baseline', zorder= 2)
 if not args.no_compare:
@@ -287,16 +296,25 @@ ax.text(-0.05, 1.05, 'e', horizontalalignment='left', verticalalignment='center'
 ax.yaxis.set_minor_locator(MultipleLocator(0.1))
 
 plt.tight_layout()
-plt.savefig('../Plots/Longitudinal_missing_RMSE_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))
+if args.latentN is None:
+    plt.savefig('../Plots/Longitudinal_missing_RMSE_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))
+else:
+    plt.savefig('../Plots/latent%d_Longitudinal_missing_RMSE_job_id%d_epoch%d.pdf'%(args.latentN,args.job_id, args.epoch))
 
 
 
 ##### NOT MISSING
 fig,ax = plt.subplots(figsize=(6.2,5))
 
-deficits_small = np.array(['Gait speed', 'Dom Grip strength', 'Non-dom grip str', 'ADL score','IADL score', 'Chair rises','Leg raise','Full tandem stance', 'Self-rated health', 'Eyesight','Hearing', 'Walking ability', 'Diastolic blood pressure', 'Systolic blood pressure', 'Pulse', 'Triglycerides','C-reactive protein','HDL cholesterol','LDL cholesterol','Glucose','IGF-1','Hemoglobin','Fibrinogen','Ferritin', 'Total cholesterol', r'White blood cell count', 'MCH', 'Glycated hemoglobin', 'Vitamin-D'])
+if args.latentN is None:
+    deficits_small = np.array(['Gait speed', 'Dom Grip strength', 'Non-dom grip str', 'ADL score','IADL score', 'Chair rises','Leg raise','Full tandem stance', 'Self-rated health', 'Eyesight','Hearing', 'Walking ability', 'Diastolic blood pressure', 'Systolic blood pressure', 'Pulse', 'Triglycerides','C-reactive protein','HDL cholesterol','LDL cholesterol','Glucose','IGF-1','Hemoglobin','Fibrinogen','Ferritin', 'Total cholesterol', r'White blood cell count', 'MCH', 'Glycated hemoglobin', 'Vitamin-D'])
+else:
+    with open('../Data/variables.txt','r') as varfile:
+        vars = varfile.readlines()[0].split(',')
+    deficits_small = np.array(vars[:args.latentN])
 
-ax.errorbar(np.arange(N)+1, RMSE_sort_notmissing[:,1], marker = 'o',color = cm(0),markersize = 6, linestyle = '', label = 'DJIN model', zorder= 10000000)
+model_name = 'DJIN model' if args.latentN is None else 'latent space model'
+ax.errorbar(np.arange(N)+1, RMSE_sort_notmissing[:,1], marker = 'o',color = cm(0),markersize = 6, linestyle = '', label = model_name, zorder= 10000000)
 
 ax.errorbar(np.arange(N)+1, RMSE_sort_notmissing[:,3], marker = 'D',color = cm(1),markersize = 5, linestyle = '', label = 'Static observed baseline', zorder= 2)
 if not args.no_compare:
@@ -306,7 +324,7 @@ ax.plot([0,N+3],[1,1], color='k', linestyle='--', zorder=-1000, linewidth = 0.75
 
 ax.set_ylabel(r'Relative RMSE',fontsize = 12)
 ax.set_xlim(0, N+1)
-ax.set_ylim(0.65, 1.5)
+ax.set_ylim(0.5, 1.5)
 
 ax.set_xticklabels(np.array(deficits_small)[RMSE_sort_notmissing[:,0].astype(int)], rotation = 90)
 ax.set_xticks(np.arange(1, N+1))
@@ -320,10 +338,14 @@ ax.text(-0.05, 1.05, 'd', horizontalalignment='left', verticalalignment='center'
 ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
 plt.tight_layout()
-plt.savefig('../Plots/Longitudinal_RMSE_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+if args.latentN is None:
+    plt.savefig('../Plots/Longitudinal_RMSE_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))
+else:
+    plt.savefig('../Plots/latent%d_Longitudinal_RMSE_job_id%d_epoch%d.pdf'%(args.latentN,args.job_id, args.epoch))
 
 # average
-with open(f'../Analysis_Data/average_RMSE_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
-    outfile.writelines(str(averageRMSE))
-    if not args.no_compare:
-        outfile.writelines(',' + str(averageLinear))
+if args.latentN == None:
+    with open(f'../Analysis_Data/average_RMSE_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
+        outfile.writelines(str(averageRMSE))
+        if not args.no_compare:
+            outfile.writelines(',' + str(averageLinear))

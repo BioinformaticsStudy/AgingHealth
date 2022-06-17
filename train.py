@@ -1,3 +1,7 @@
+# trains djin model, requires job_id to be specified
+# trained parameters are saved to /Parameters
+# run create_elsa_data.sh, population_average.py, and population_std.py before running this
+
 import argparse
 import os
 import numpy as np

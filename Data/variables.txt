@@ -1,0 +1,1 @@
+gait speed,grip dom,grip ndom,FI ADL,FI IADL,chair,leg raise,full tandem,srh,eye,hear,func,dias,sys,pulse,trig,crp,hdl,ldl,glucose,igf1,hgb,fib,fer,chol,wbc,mch,hba1c,vitd
