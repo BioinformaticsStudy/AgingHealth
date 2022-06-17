@@ -1,3 +1,5 @@
+# handles adl and iadl calculations for data_parser.py
+
 from os import getcwd
 import pandas as pd
 import numpy as np

@@ -1,5 +1,5 @@
 # plots time-dependent c-index of multiple latent space models depending on their N
-# latent models should be trained with train_full_multiple.py
+# latent models should be trained with train_full_multiple.py or individually with train_full.py
 from pathlib import Path
 import sys
 file = Path(__file__). resolve()  
@@ -30,19 +30,21 @@ parser.add_argument('--djin_epoch',type=int,default=None)
 args = parser.parse_args()
 
 djin_compare = args.djin_id != None and args.djin_epoch != None
-postfix = '_sample' if args.dataset=='sample' else ''
-test_name = f'../Data/test{postfix}.csv'
+
 
 # latent
 Ns = list(np.arange(args.start,args.stop,args.step)) + [args.stop]
 results = pd.DataFrame(index=Ns,columns=['C-index'])
 
 for N in Ns:
-    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(args.job_id,args.epoch,N,postfix))    
+    postfix = f'_latent{N}_sample' if args.dataset=='sample' else f'_latent{N}'
+    test_name = f'../Data/test{postfix}.csv'
 
-    pop_avg = np.load(f'../Data/Population_averages{N}{postfix}.npy')
-    pop_avg_env = np.load(f'../Data/Population_averages_env{N}{postfix}.npy')
-    pop_std = np.load(f'../Data/Population_std{N}{postfix}.npy')
+    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id,args.epoch,postfix))    
+
+    pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'../Data/Population_std{postfix}.npy')
     pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
     pop_avg_env = torch.from_numpy(pop_avg_env).float()
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -67,7 +69,8 @@ for N in Ns:
 
 # djin and latent
 if djin_compare:
-    with open(f'../Analysis_Data/overall_cindex_job_id{args.djin_id}_epoch{args.djin_epoch}{postfix}.txt','r') as infile:
+    djin_set = '_sample' if args.dataset=='sample' else ''
+    with open(f'../Analysis_Data/overall_cindex_job_id{args.djin_id}_epoch{args.djin_epoch}{djin_set}.txt','r') as infile:
         lines = infile.readlines()[0].split(',')
         djin_cindex = float(lines[0])
         if len(lines) > 1:
@@ -83,7 +86,7 @@ plot = sns.scatterplot(data=results,x='N',y='C-index')
 plot.set_xlabel('Model dimension')
 plot.set_ylabel('Survival C-index')
 plt.ylim(.5,1)
-plt.xlim(0,args.stop)
+plt.xlim(0,args.stop+1)
 if djin_compare:
     custom_legend = []
     labels = []
@@ -91,12 +94,12 @@ if djin_compare:
     custom_legend.append(plt.Line2D([], [], marker='o', color='r', linestyle='None'))
     labels.append('DJIN model')
     if linear_cindex is not None:
-        plt.plot([0,args.stop],[linear_cindex,linear_cindex],linestyle='--',color='g')
+        plt.plot([0,args.stop+1],[linear_cindex,linear_cindex],linestyle='--',color='g')
         custom_legend.append(plt.Line2D([], [], color='g', linestyle='--'))
         labels.append('Elastic-net Cox model')
     plt.legend(custom_legend, labels)
 
-
+postfix = '_sample' if args.dataset=='sample' else ''
 fig = plot.get_figure()
 fig.savefig(f'../Plots/latent_cindex_by_dim_job_id{args.job_id}_epoch{args.epoch}{postfix}.pdf')
 

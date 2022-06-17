@@ -1,36 +1,39 @@
+# creates predictions using model trained in train_full.py
+
 import argparse
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from pandas import read_csv
+import os
 
 from Alternate_models.model_full import Model
 from Alternate_models.dataset_dim import Dataset
 from DataLoader.collate import custom_collate
 from Utils.record import record
 
-# creates predictions using model trained in train_full.py
-
 
 def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nflows,flow_hidden,dataset,N):
-    postfix = '_sample' if dataset == 'sample' else ''
-    torch.set_num_threads(6)
+    postfix = f'_latent{N}_sample' if dataset == 'sample' else f'_latent{N}'
+    repository = os.path.dirname(os.path.realpath(__file__))
 
+    torch.set_num_threads(6)
+    
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     sims = 250
     dt = 0.5
     length = 50
 
-    pop_avg = np.load(f'Data/Population_averages{N}{postfix}.npy')
-    pop_avg_env = np.load(f'Data/Population_averages_env{N}{postfix}.npy')
-    pop_std = np.load(f'Data/Population_std{N}{postfix}.npy')
+    pop_avg = np.load(f'{repository}/Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'{repository}/Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'{repository}/Data/Population_std{postfix}.npy')
     pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
     pop_avg_env = torch.from_numpy(pop_avg_env).float()
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
     pop_avg_bins = np.arange(40, 105, 3)[:-2]
 
-    test_name = f'Data/test{postfix}.csv'
+    test_name = f'{repository}/Data/test{postfix}.csv'
     min_count = N // 3
     prune = min_count >= 1
 
@@ -42,7 +45,7 @@ def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nfl
     std_T = test_set.std_T
 
     model = Model(device, N, gamma_size, z_size, decoder_size, Nflows, flow_hidden, mean_T, std_T, dt,length=length).to(device)
-    model.load_state_dict(torch.load('Parameters/train%d_Model%d_latent_epoch%d%s.params'%(job_id,N, epoch,postfix),map_location=device))
+    model.load_state_dict(torch.load('%s/Parameters/train%d_Model%s_epoch%d.params'%(repository,job_id, postfix,epoch),map_location=device))
     model = model.eval()
 
     mean_results = np.zeros((test_set.__len__(), 100, N+1)) * np.nan
@@ -104,9 +107,9 @@ def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nfl
 
             start += size
     
-    np.save('Analysis_Data/Mean_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(job_id, epoch, N,postfix), mean_results)
-    np.save('Analysis_Data/Std_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(job_id, epoch, N,postfix), std_results)
-    np.save('Analysis_Data/Survival_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(job_id, epoch, N, postfix), S_results)
+    np.save('%s/Analysis_Data/Mean_trajectories_job_id%d_epoch%d%s.npy'%(repository,job_id, epoch,postfix), mean_results)
+    np.save('%s/Analysis_Data/Std_trajectories_job_id%d_epoch%d%s.npy'%(repository,job_id, epoch,postfix), std_results)
+    np.save('%s/Analysis_Data/Survival_trajectories_job_id%d_epoch%d%s.npy'%(repository,job_id, epoch, postfix), S_results)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser('Predict')

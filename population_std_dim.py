@@ -19,7 +19,7 @@ def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
 
 def run(dataset, N):
-  postfix = '_sample' if dataset == 'sample' else ''
+  postfix = f'_latent{N}_sample' if dataset == 'sample' else f'_latent{N}'
   device = 'cpu'
 
   dt = 0.5
@@ -102,8 +102,8 @@ def run(dataset, N):
       avg[sex, :,0] = bin_centers
       avg_smooth[sex, :,0] = bin_centers
 
-  np.save(f'Data/Population_std{N}{postfix}.npy', avg_smooth)
-  np.save(f'Data/Population_std_env{N}{postfix}.npy', avg_env_smooth)
+  np.save(f'Data/Population_std{postfix}.npy', avg_smooth)
+  np.save(f'Data/Population_std_env{postfix}.npy', avg_env_smooth)
 
 
 

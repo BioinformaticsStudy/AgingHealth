@@ -14,7 +14,7 @@ parser.add_argument('--N', type=int, default=29, help='number of deficits to be 
 args = parser.parse_args()
 
 variables = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'mobility', 'country',
-              'alcohol', 'jointrep', 'fractures', 'gait speed', 'grip dom', 'grip ndom', 
+             'jointrep', 'fractures', 'gait speed', 'grip dom', 'grip ndom', 
               'FI ADL', 'FI IADL', 'chair','leg raise', 'full tandem', 'srh', 'eye', 'hear', 'func', 'dias', 
               'sys', 'pulse', 'trig', 'crp','hdl','ldl','glucose','igf1','hgb','fib','fer', 'chol', 'wbc', 
               'mch', 'hba1c', 'vitd']
@@ -59,4 +59,4 @@ stds.to_csv(f'{getcwd()}/Data/std_deficits_latent.txt')
 with open(f'{getcwd()}/Data/variables.txt','w') as outfile:
     for variable in changes['variable']:
         outfile.writelines(variable + ',')
-    outfile.writelines('height,bmi,ethnicity,sex')
+    outfile.writelines('alcohol,height,bmi,ethnicity,sex')

@@ -1,7 +1,7 @@
-from curses import def_shell_mode
+#creates a sample of elsa_cleaned.csv with a specified number of individuals
+
 import pandas as pd
 import argparse
-import random
 
 parser = argparse.ArgumentParser('Sample')
 parser.add_argument('--size', type=int, default=30,help='the amount of ids to be included in the sample')

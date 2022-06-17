@@ -1,3 +1,5 @@
+# handles medication calculations for data_parser.py
+
 import pandas as pd
 import numpy as np
 from os import getcwd

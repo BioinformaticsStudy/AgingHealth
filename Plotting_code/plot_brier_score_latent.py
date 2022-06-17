@@ -29,18 +29,19 @@ parser.add_argument('--djin_epoch',type=int,default=None)
 args = parser.parse_args()
 
 djin_compare = args.djin_id != None and args.djin_epoch != None
-postfix = '_sample' if args.dataset=='sample' else ''
-test_name = f'../Data/test{postfix}.csv'
+
 
 Ns = list(np.arange(args.start,args.stop,args.step)) + [args.stop]
 results = pd.DataFrame(index=Ns,columns=['IBS'])
 
 for N in Ns:
-    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_latent%d%s.npy'%(args.job_id,args.epoch,N,postfix))
+    postfix = f'_latent{N}_sample' if args.dataset=='sample' else f'_latent{N}'
+
+    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id,args.epoch,postfix))
     
-    pop_avg = np.load(f'../Data/Population_averages{N}{postfix}.npy')
-    pop_avg_env = np.load(f'../Data/Population_averages_env{N}{postfix}.npy')
-    pop_std = np.load(f'../Data/Population_std{N}{postfix}.npy')
+    pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'../Data/Population_std{postfix}.npy')
     pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
     pop_avg_env = torch.from_numpy(pop_avg_env).float()
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -48,6 +49,7 @@ for N in Ns:
     min_count = N // 3
     prune = min_count >= 1
 
+    test_name = f'../Data/test{postfix}.csv'
     test_set = Dataset(test_name, N,  pop=False, min_count=min_count, prune=prune)
     num_test = test_set.__len__()
     test_generator = DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
@@ -147,7 +149,8 @@ for N in Ns:
 
 # djin and linear
 if djin_compare:
-    with open(f'../Analysis_Data/IBS_job_id{args.djin_id}_epoch{args.djin_epoch}{postfix}.txt','r') as infile:
+    djin_dataset = '_sample' if args.dataset=='sample' else ''
+    with open(f'../Analysis_Data/IBS_job_id{args.djin_id}_epoch{args.djin_epoch}{djin_dataset}.txt','r') as infile:
         lines = infile.readlines()[0].split(',')
         djin_IBS = float(lines[0])
         if len(lines) > 1:
@@ -176,5 +179,6 @@ if djin_compare:
     plt.legend(custom_legend, labels)
 
 fig = plot.get_figure()
+postfix = '_sample' if args.dataset=='sample' else ''
 fig.savefig(f'../Plots/latent_brier_score_by_dim_job_id{args.job_id}_epoch{args.epoch}{postfix}.pdf')
 

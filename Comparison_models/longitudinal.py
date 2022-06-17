@@ -1,3 +1,5 @@
+# trains and predicts longitudal data for linear model
+
 import argparse
 import numpy as np
 import pandas as pd

@@ -1,3 +1,6 @@
+# training for latent model located in /Alternate_Models
+# run split_data.py (with latentN argument), population_averages_dim.py, and population_std_dim.py before running this
+
 import argparse
 import os
 import numpy as np
@@ -17,7 +20,7 @@ from Alternate_models.loss_full import loss, sde_KL_loss
 
 
 def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_size, decoder_size, Nflows, flow_hidden, dataset, N):
-    postfix = '_sample' if dataset=='sample' else ''
+    postfix = f'_latent{N}_sample' if dataset=='sample' else f'_latent{N}'
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -55,9 +58,9 @@ def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_s
 
     dt = 0.5
 
-    pop_avg = np.load(f'Data/Population_averages{N}{postfix}.npy')
-    pop_avg_env = np.load(f'Data/Population_averages_env{N}{postfix}.npy')
-    pop_std = np.load(f'Data/Population_std{N}{postfix}.npy')
+    pop_avg = np.load(f'Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'Data/Population_std{postfix}.npy')
     pop_avg = torch.from_numpy(pop_avg[...,1:]).float()
     pop_avg_env = torch.from_numpy(pop_avg_env).float()
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -168,7 +171,7 @@ def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_s
                 # output loss
                 with open(loss_file, 'a') as lf:
                     lf.writelines('%d, %.3f, %.3f\n'%(epoch, recon_loss.cpu().numpy()/test_average, total_loss.cpu().numpy()/test_average))
-                print('Epoch %d, recon loss %.3f, total loss %.3f, kl loss %.3f, SDE loss %.3f, beta dynamics %.3f, beta vae %.3f) '%(epoch, recon_loss.cpu().numpy()/test_average, total_loss.cpu().numpy()/test_average, kl_loss.cpu().numpy()/test_average, sde_loss.cpu().numpy(), beta_dynamics, beta_vae), pred_sigma_X.cpu().mean(), sigma_y.cpu().mean())
+                print('N %d, Epoch %d, recon loss %.3f, total loss %.3f, kl loss %.3f, SDE loss %.3f, beta dynamics %.3f, beta vae %.3f) '%(N, epoch, recon_loss.cpu().numpy()/test_average, total_loss.cpu().numpy()/test_average, kl_loss.cpu().numpy()/test_average, sde_loss.cpu().numpy(), beta_dynamics, beta_vae), pred_sigma_X.cpu().mean(), sigma_y.cpu().mean())
                 
             model = model.train()
             
@@ -177,12 +180,12 @@ def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_s
             
         # output params
         if epoch % 20 ==0:
-            torch.save(model.state_dict(), '%strain%d_Model%d_latent_epoch%d%s.params'%(params_folder, job_id, N, epoch, postfix))
+            torch.save(model.state_dict(), '%strain%d_Model%s_epoch%d.params'%(params_folder, job_id, postfix, epoch))
 
         kl_scheduler_dynamics.step()
         kl_scheduler_vae.step()
 
-    torch.save(model.state_dict(), '%strain%d_Model%d_latent_epoch%d%s.params'%(params_folder, job_id, N, epoch, postfix))
+    torch.save(model.state_dict(), '%strain%d_Model%s_epoch%d.params'%(params_folder, job_id, postfix, epoch))
 
 
 if __name__ == '__main__':

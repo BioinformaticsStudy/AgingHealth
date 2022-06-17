@@ -1,3 +1,6 @@
+# reads ELSA data from folder and parses it to be consistent and cleaned
+# imputes some predictable values
+
 import pandas as pd
 from os import getcwd
 import numpy as np
