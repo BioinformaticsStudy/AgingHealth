@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import itertools
 import sys
+import os
 
 from clean_data import clean_test_data
 
@@ -37,10 +38,11 @@ background = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'height', 'bm
 N = 29
     
 postfix = '_sample' if args.dataset == 'train_sample' else ''
+dir = os.path.dirname(os.path.realpath(__file__))
 if args.param_id is None: 
     sys.exit('param_id must be specified')
 
-train_data = pd.read_csv('../Data/%s.csv'%(args.dataset))
+train_data = pd.read_csv(dir+'/../Data/%s.csv'%(args.dataset))
 train_data['weight'] = 1
 
 # train imputation
@@ -132,4 +134,4 @@ for i in range(N-1):
             predictions[:,t, i + 1] = model.predict(X_test_i_t) + X_test_i[:, i + 1]
             predictions[:,t, 0] = X_test_i[:, 0] + delta_t
 
-np.save('Predictions/Longitudinal_predictions_baseline_id%d_rfmice%s.npy'%(args.param_id,postfix), predictions)
+np.save(dir+'/Predictions/Longitudinal_predictions_baseline_id%d_rfmice%s.npy'%(args.param_id,postfix), predictions)

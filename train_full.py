@@ -21,6 +21,7 @@ from Alternate_models.loss_full import loss, sde_KL_loss
 
 def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_size, decoder_size, Nflows, flow_hidden, dataset, N):
     postfix = f'_latent{N}_sample' if dataset=='sample' else f'_latent{N}'
+    dir = os.path.dirname(os.path.realpath(__file__))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -36,8 +37,8 @@ def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_s
         test_average = 3
 
     # folders for output
-    params_folder = 'Parameters/'
-    output_folder = 'Output/'
+    params_folder = dir+'/Parameters/'
+    output_folder = dir+'/Output/'
 
     # setting up file for loss outputs
     loss_file = '%svalidation%d.loss'%(output_folder, job_id)
@@ -58,9 +59,9 @@ def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_s
 
     dt = 0.5
 
-    pop_avg = np.load(f'Data/Population_averages{postfix}.npy')
-    pop_avg_env = np.load(f'Data/Population_averages_env{postfix}.npy')
-    pop_std = np.load(f'Data/Population_std{postfix}.npy')
+    pop_avg = np.load(f'{dir}/Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'{dir}/Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'{dir}/Data/Population_std{postfix}.npy')
     pop_avg = torch.from_numpy(pop_avg[...,1:]).float()
     pop_avg_env = torch.from_numpy(pop_avg_env).float()
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -68,14 +69,14 @@ def train(job_id, batch_size, niters, learning_rate, corruption, gamma_size, z_s
     min_count = N // 4
     prune = min_count >= 1
 
-    train_name = f'Data/train{postfix}.csv'
+    train_name = f'{dir}/Data/train{postfix}.csv'
     training_set = Dataset(train_name, N, pop=False, min_count = min_count, prune=prune)
     training_generator = DataLoader(training_set,
                                         batch_size = batch_size,
                                         shuffle = True, drop_last = True, num_workers = num_workers, pin_memory=True,
                                         collate_fn = lambda x: custom_collate(x, pop_avg, pop_avg_env, pop_std, corruption))
 
-    valid_name = f'Data/valid{postfix}.csv'
+    valid_name = f'{dir}/Data/valid{postfix}.csv'
     validation_set = Dataset(valid_name, N, pop=False, min_count = min_count,prune=prune)
     validation_generator = DataLoader(validation_set,
                                           batch_size = 4000,

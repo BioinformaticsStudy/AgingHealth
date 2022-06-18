@@ -18,8 +18,10 @@ from DataLoader.dataset import Dataset
 device = 'CPU'
 
 N = 29
+dir = os.path.dirname(os.path.realpath(__file__))
 
-train_name = '../Data/train.csv'
+
+train_name = dir+'/../Data/train.csv'
 training_set = Dataset(train_name, N, pop=False, min_count = 6)
 
 data = training_set.longitudinal_data
@@ -74,4 +76,4 @@ ax.text(-0.05, 1.05, 'a', horizontalalignment='left', verticalalignment='center'
 
 plt.tight_layout()
 
-plt.savefig('../Plots/pearson_correlations.pdf')
+plt.savefig(dir+'/../Plots/pearson_correlations.pdf')

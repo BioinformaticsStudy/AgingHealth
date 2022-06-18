@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from scipy.stats import sem
 from torch.utils import data
+import os
 
 from pathlib import Path
 import sys
@@ -38,7 +39,7 @@ if args.latentN == None:
     from DataLoader.dataset import Dataset
 else:
     from Alternate_models.dataset_dim import Dataset
-
+dir = os.path.dirname(os.path.realpath(__file__))
 
 device = 'cpu'
 
@@ -46,14 +47,14 @@ N = 29 if args.latentN == None else args.latentN
 dt = 0.5
 length = 50
 
-pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+pop_avg = np.load(f'{dir}/../Data/Population_averages{postfix}.npy')
+pop_avg_env = np.load(f'{dir}/../Data/Population_averages_env{postfix}.npy')
+pop_std = np.load(f'{dir}/../Data/Population_std{postfix}.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 
-test_name = f'../Data/test{postfix}.csv'
+test_name = f'{dir}/../Data/test{postfix}.csv'
 test_set = Dataset(test_name, N,  pop=False, min_count=10)
 num_test = test_set.__len__()
 test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))

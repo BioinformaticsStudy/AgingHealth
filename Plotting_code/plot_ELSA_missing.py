@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import argparse
+import os
 
 import matplotlib as mpl
 mpl.rcParams['mathtext.fontset'] = 'cm'
@@ -29,10 +30,12 @@ parser = argparse.ArgumentParser('Plot_Missing')
 parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa',help='the dataset that was used to train the model; either \'elsa\' or \'sample\'')
 parser.add_argument('--no_compare',action='store_true',help='whether or not to plot the comparison model')
 args = parser.parse_args()
+
+dir = os.path.dirname(os.path.realpath(__file__))
 filename = 'sample_data' if args.dataset == 'sample' else 'ELSA_cleaned'
 postfix = '_sample' if args.dataset == 'sample' else ''
 
-data = pd.read_csv(f'../Data/{filename}.csv')
+data = pd.read_csv(f'{dir}/../Data/{filename}.csv')
 
 for n in range(len(deficits)):
     if n in [15, 16, 23, 25, 26, 28]:
@@ -76,7 +79,7 @@ deaths = data.drop('delta_t', axis=1)['delta_death_age'].notna().groupby(data.de
 
 non_nurse = [0, 3, 4, 8, 9, 10, 11]
 nurse = [1, 2, 5, 6, 7, 12, 13, 14,15,16,17,18,19,20,21,22,23,24,25,26,27,28]
-(1 - data[np.array(deficits)].notna().mean()).to_csv('../Analysis_Data/ELSA_missing_percent.csv')
+(1 - data[np.array(deficits)].notna().mean()).to_csv(dir+'/../Analysis_Data/ELSA_missing_percent.csv')
 
 missing = missing.sort_values('delta_t')
 missing[deficits] = (missing[deficits]).astype(int)
@@ -155,4 +158,4 @@ ax[1].text(-0.13, 0.5, 'Background', horizontalalignment='center', verticalalign
 plt.tight_layout()
 plt.subplots_adjust(hspace=0)
 plt.subplots_adjust(left=0.15)
-plt.savefig(f'../Plots/missing_values_ELSA{postfix}.pdf')
+plt.savefig(f'{dir}/../Plots/missing_values_ELSA{postfix}.pdf')

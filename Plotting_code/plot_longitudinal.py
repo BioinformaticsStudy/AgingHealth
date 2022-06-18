@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from scipy.stats import sem
 import pandas as pd
+import os
 
 
 from torch.utils import data
@@ -37,6 +38,8 @@ parser.add_argument('--no_compare',action='store_true',help='whether or not to p
 parser.add_argument('--latentN', type=int, default=None, help='the size of N if plotting the latent model; can be left None if plotting DJIN')
 args = parser.parse_args()
 postfix = '' if args.latentN == None else f'_latent{args.latentN}'
+
+dir = os.path.dirname(os.path.realpath(__file__))
 if args.dataset == 'sample': 
     postfix += '_sample'
 
@@ -51,26 +54,26 @@ N = 29 if args.latentN == None else args.latentN
 dt = 0.5
 length = 50
 
-pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+pop_avg = np.load(f'{dir}/../Data/Population_averages{postfix}.npy')
+pop_avg_env = np.load(f'{dir}/../Data/Population_averages_env{postfix}.npy')
+pop_std = np.load(f'{dir}/../Data/Population_std{postfix}.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 pop_avg_bins = np.arange(40, 105, 3)[:-2]
 
-test_name = f'../Data/test{postfix}.csv'
+test_name = f'{dir}/../Data/test{postfix}.csv'
 test_set = Dataset(test_name, N, pop=False, min_count = 10)
 num_test = test_set.__len__()
 test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
 
 if args.latentN == None:
-    mean_deficits = pd.read_csv(f'../Data/mean_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten()
-    std_deficits = pd.read_csv(f'../Data/std_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten()
+    mean_deficits = pd.read_csv(f'{dir}/../Data/mean_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten()
+    std_deficits = pd.read_csv(f'{dir}/../Data/std_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten()
     log_scaled_indexes = [23, 15, 16, 25, 26, 28, 6, 7]
 else:
-    mean_deficits = pd.read_csv(f'../Data/mean_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
-    std_deficits = pd.read_csv(f'../Data/std_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    mean_deficits = pd.read_csv(f'{dir}/../Data/mean_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    std_deficits = pd.read_csv(f'{dir}/../Data/std_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
     mean_deficits.reset_index(inplace=True,drop=True)
     std_deficits.reset_index(inplace=True,drop=True)
     # get indexes of log scaled variables to be used in Transformation
@@ -107,12 +110,12 @@ collected_t = []
 with torch.no_grad():
 
     if args.latentN == None:
-        mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+        mean = np.load(dir+ '/../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
     else:
-        mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id,args.epoch,postfix))
+        mean = np.load(dir+ '/../Analysis_Data/Mean_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id,args.epoch,postfix))
 
     if not args.no_compare:
-        linear = np.load(f'../Comparison_models/Predictions/Longitudinal_predictions_baseline_id1_rfmice{postfix}.npy')
+        linear = np.load(f'{dir}/../Comparison_models/Predictions/Longitudinal_predictions_baseline_id1_rfmice{postfix}.npy')
     
     for data in test_generator:
         break
@@ -262,7 +265,7 @@ fig,ax = plt.subplots(figsize=(6.2,5))
 if args.latentN is None:
     deficits_small = np.array(['Gait speed', 'Dom Grip strength', 'Non-dom grip str', 'ADL score','IADL score', 'Chair rises','Leg raise','Full tandem stance', 'Self-rated health', 'Eyesight','Hearing', 'Walking ability', 'Diastolic blood pressure', 'Systolic blood pressure', 'Pulse', 'Triglycerides','C-reactive protein','HDL cholesterol','LDL cholesterol','Glucose','IGF-1','Hemoglobin','Fibrinogen','Ferritin', 'Total cholesterol', r'White blood cell count', 'MCH', 'Glycated hemoglobin', 'Vitamin-D'])
 else:
-    with open('../Data/variables.txt','r') as varfile:
+    with open(dir+'/../Data/variables.txt','r') as varfile:
         vars = varfile.readlines()[0].split(',')
     deficits_small = np.array(vars[:args.latentN])
 
@@ -297,9 +300,9 @@ ax.yaxis.set_minor_locator(MultipleLocator(0.1))
 
 plt.tight_layout()
 if args.latentN is None:
-    plt.savefig('../Plots/Longitudinal_missing_RMSE_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))
+    plt.savefig(dir+'/../Plots/Longitudinal_missing_RMSE_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))
 else:
-    plt.savefig('../Plots/latent%d_Longitudinal_missing_RMSE_job_id%d_epoch%d.pdf'%(args.latentN,args.job_id, args.epoch))
+    plt.savefig(dir+'/../Plots/latent%d_Longitudinal_missing_RMSE_job_id%d_epoch%d.pdf'%(args.latentN,args.job_id, args.epoch))
 
 
 
@@ -309,7 +312,7 @@ fig,ax = plt.subplots(figsize=(6.2,5))
 if args.latentN is None:
     deficits_small = np.array(['Gait speed', 'Dom Grip strength', 'Non-dom grip str', 'ADL score','IADL score', 'Chair rises','Leg raise','Full tandem stance', 'Self-rated health', 'Eyesight','Hearing', 'Walking ability', 'Diastolic blood pressure', 'Systolic blood pressure', 'Pulse', 'Triglycerides','C-reactive protein','HDL cholesterol','LDL cholesterol','Glucose','IGF-1','Hemoglobin','Fibrinogen','Ferritin', 'Total cholesterol', r'White blood cell count', 'MCH', 'Glycated hemoglobin', 'Vitamin-D'])
 else:
-    with open('../Data/variables.txt','r') as varfile:
+    with open(dir+'/../Data/variables.txt','r') as varfile:
         vars = varfile.readlines()[0].split(',')
     deficits_small = np.array(vars[:args.latentN])
 
@@ -339,13 +342,13 @@ ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
 plt.tight_layout()
 if args.latentN is None:
-    plt.savefig('../Plots/Longitudinal_RMSE_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))
+    plt.savefig(dir+'/../Plots/Longitudinal_RMSE_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))
 else:
-    plt.savefig('../Plots/latent%d_Longitudinal_RMSE_job_id%d_epoch%d.pdf'%(args.latentN,args.job_id, args.epoch))
+    plt.savefig(dir+'/../Plots/latent%d_Longitudinal_RMSE_job_id%d_epoch%d.pdf'%(args.latentN,args.job_id, args.epoch))
 
 # average
 if args.latentN == None:
-    with open(f'../Analysis_Data/average_RMSE_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
+    with open(f'{dir}/../Analysis_Data/average_RMSE_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
         outfile.writelines(str(averageRMSE))
         if not args.no_compare:
             outfile.writelines(',' + str(averageLinear))

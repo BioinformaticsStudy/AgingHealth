@@ -5,6 +5,7 @@ from scipy.stats import sem
 from pandas import read_csv
 
 from torch.utils import data
+import os
 
 
 from pathlib import Path
@@ -37,6 +38,8 @@ parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa
 parser.add_argument('--no_compare',action='store_true',help='whether or not to plot the comparison model')
 args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
+dir = os.path.dirname(os.path.realpath(__file__))
+
 
 device = 'cpu'
 
@@ -44,24 +47,24 @@ N = 29
 dt = 0.5
 length = 50
 
-pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+pop_avg = np.load(f'{dir}/../Data/Population_averages{postfix}.npy')
+pop_avg_env = np.load(f'{dir}/../Data/Population_averages_env{postfix}.npy')
+pop_std = np.load(f'{dir}/../Data/Population_std{postfix}.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 pop_avg_bins = np.arange(40, 105, 3)[:-2]
 
-test_name = f'../Data/test{postfix}.csv'
+test_name = f'{dir}/../Data/test{postfix}.csv'
 test_set = Dataset(test_name, N, pop=False, min_count = 10)
 num_test = test_set.__len__()
 test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
 
-missing_percent = read_csv('../Analysis_Data/ELSA_missing_percent.csv').values[:,1]
+missing_percent = read_csv(f'{dir}/../Analysis_Data/ELSA_missing_percent.csv').values[:,1]
 
 
-mean_deficits = read_csv(f'../Data/mean_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
-std_deficits = read_csv(f'../Data/std_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
+mean_deficits = read_csv(f'{dir}/../Data/mean_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
+std_deficits = read_csv(f'{dir}/../Data/std_deficits{postfix}.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
 
 psi = Transformation(mean_deficits[:-3], std_deficits[:-3], [6, 7, 15, 16, 23, 25, 26, 28])
 
@@ -82,10 +85,10 @@ if not args.no_compare:
     linear_notmissing = [[] for i in range(N)]
 with torch.no_grad():
 
-    mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+    mean = np.load(dir+'/../Analysis_Data/Mean_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
     
     if not args.no_compare:
-        linear = np.load(f'../Comparison_models/Predictions/Longitudinal_predictions_baseline_id1_rfmice{postfix}.npy')
+        linear = np.load(f'{dir}/../Comparison_models/Predictions/Longitudinal_predictions_baseline_id1_rfmice{postfix}.npy')
     
     start = 0
     for data in test_generator:
@@ -243,4 +246,4 @@ ax.text(0.02,0.94, 'Longitudinal predictions  between 1 and 6 years', horizontal
 ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
 plt.tight_layout()
-plt.savefig('../Plots/Longitudinal_RMSE_job_id%d_epoch%d_missing%s.pdf'%(args.job_id, args.epoch,postfix))
+plt.savefig(dir+'/../Plots/Longitudinal_RMSE_job_id%d_epoch%d_missing%s.pdf'%(args.job_id, args.epoch,postfix))

@@ -5,6 +5,7 @@ from scipy.stats import binned_statistic
 
 from scipy.signal import savgol_filter
 import argparse
+import os
 
 from pathlib import Path
 import sys
@@ -14,6 +15,7 @@ sys.path.append(str(package_root_directory))
 
 from Alternate_models.dataset_dim import Dataset
 
+dir = os.path.dirname(os.path.realpath(__file__))
 
 def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
@@ -24,7 +26,7 @@ def run(dataset, N):
 
   dt = 0.5
 
-  train_name = f'Data/train{postfix}.csv'
+  train_name = f'{dir}/Data/train{postfix}.csv'
   training_set = Dataset(train_name, N, pop=True)
   num_train = training_set.__len__()
   training_generator = DataLoader(training_set,
@@ -102,8 +104,8 @@ def run(dataset, N):
       avg[sex, :,0] = bin_centers
       avg_smooth[sex, :,0] = bin_centers
 
-  np.save(f'Data/Population_std{postfix}.npy', avg_smooth)
-  np.save(f'Data/Population_std_env{postfix}.npy', avg_env_smooth)
+  np.save(f'{dir}/Data/Population_std{postfix}.npy', avg_smooth)
+  np.save(f'{dir}/Data/Population_std_env{postfix}.npy', avg_env_smooth)
 
 
 

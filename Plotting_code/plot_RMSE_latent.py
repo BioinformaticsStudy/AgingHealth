@@ -5,6 +5,7 @@ import sys
 file = Path(__file__). resolve()  
 package_root_directory = file.parents [1]  
 sys.path.append(str(package_root_directory))  
+import os
 
 import argparse
 import torch
@@ -34,6 +35,8 @@ device = 'cpu'
 
 dt = 0.5
 length = 50
+dir = os.path.dirname(os.path.realpath(__file__))
+
 
 
 # latent calculations
@@ -42,9 +45,9 @@ results = pd.DataFrame(index=Ns,columns=['Mean RMSE'])
 for N in Ns:
     postfix = f'_latent{N}_sample' if args.dataset=='sample' else f'_latent{N}'
 
-    pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-    pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-    pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+    pop_avg = np.load(f'{dir}/../Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'{dir}/../Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'{dir}/../Data/Population_std{postfix}.npy')
     pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
     pop_avg_env = torch.from_numpy(pop_avg_env).float()
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -53,13 +56,13 @@ for N in Ns:
     min_count = N // 3
     prune = min_count >= 1
     
-    test_name = f'../Data/test{postfix}.csv'
+    test_name = f'{dir}/../Data/test{postfix}.csv'
     test_set = Dataset(test_name, N, pop=False, min_count=min_count, prune=prune)
     num_test = test_set.__len__()
     test_generator = DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
 
-    mean_deficits = pd.read_csv(f'../Data/mean_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
-    std_deficits = pd.read_csv(f'../Data/std_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    mean_deficits = pd.read_csv(f'{dir}/../Data/mean_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
+    std_deficits = pd.read_csv(f'{dir}/../Data/std_deficits{postfix}.txt',sep=',',header=None, names = ['variable','value'])[1:N+1]
     mean_deficits.reset_index(inplace=True,drop=True)
     std_deficits.reset_index(inplace=True,drop=True)
 
@@ -87,7 +90,7 @@ for N in Ns:
     pop_notmissing = [[] for i in range(N)]
     collected_t = []
 
-    mean = np.load('../Analysis_Data/Mean_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id, args.epoch, postfix))
+    mean = np.load(dir+'/../Analysis_Data/Mean_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id, args.epoch, postfix))
     
     for data in test_generator:
         break
@@ -166,7 +169,7 @@ for N in Ns:
 # djin and linear
 if djin_compare:
     djin_dataset = '_sample' if args.dataset=='sample' else ''
-    with open(f'../Analysis_Data/average_RMSE_job_id{args.djin_id}_epoch{args.djin_epoch}{djin_dataset}.txt','r') as infile:
+    with open(f'{dir}/../Analysis_Data/average_RMSE_job_id{args.djin_id}_epoch{args.djin_epoch}{djin_dataset}.txt','r') as infile:
         lines = infile.readlines()[0].split(',')
         djin_avg = float(lines[0])
         if len(lines) > 1:
@@ -198,6 +201,6 @@ plot.set_xlabel('Model dimension')
 plot.set_ylabel('Mean Relative RMSE')
 fig = plot.get_figure()
 postfix = '_sample' if args.dataset=='sample' else ''
-fig.savefig(f'../Plots/latent_RMSE_by_dim_job_id{args.job_id}_epoch{args.epoch}{postfix}.pdf')
+fig.savefig(f'{dir}/../Plots/latent_RMSE_by_dim_job_id{args.job_id}_epoch{args.epoch}{postfix}.pdf')
 
 

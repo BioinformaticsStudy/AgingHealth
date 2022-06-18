@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 from sklearn.cluster import AgglomerativeClustering
 from scipy.stats import laplace
+import os
 
 from scipy.cluster.hierarchy import dendrogram as set_link_color_palette, dendrogram
 import matplotlib.pyplot as plt
@@ -38,13 +39,13 @@ parser.add_argument('--epoch', type=int)
 parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa',help='the dataset that was used to train the model; either \'elsa\' or \'sample\'')
 args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
-
+dir = os.path.dirname(os.path.realpath(__file__))
 
 palette = [mpl.colors.to_hex(cm(k)[:3]) for k in range(10)]
 del palette[5]
 del palette[-3]
 
-network = np.load('../Analysis_Data/network_weights_job_id%d_epoch%d%s.npy'%(args.job_id, args.epoch,postfix))
+network = np.load(dir+'/../Analysis_Data/network_weights_job_id%d_epoch%d%s.npy'%(args.job_id, args.epoch,postfix))
 
 
 A = np.nan_to_num(network, nan=0.0)
@@ -75,4 +76,4 @@ ax.set_xticklabels([])
 
 plt.tight_layout()
 plt.subplots_adjust(bottom=0.35)
-plt.savefig('../Plots/hierarchical_network_clustering_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+plt.savefig(dir+'/../Plots/hierarchical_network_clustering_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))

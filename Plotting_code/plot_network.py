@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import argparse
 from scipy.stats import laplace
+import os
 
 from pathlib import Path
 import sys
@@ -33,6 +34,8 @@ parser.add_argument('--f_nn_size', type=int, default = 12)
 parser.add_argument('--W_prior_scale', type=float, default = 0.1)
 parser.add_argument('--dataset',type=str,default='elsa',choices=['elsa','sample'],help='which dataset was used to train the model; either \'elsa\' or \'sample\'')
 args = parser.parse_args()
+dir = os.path.dirname(os.path.realpath(__file__))
+
 
 deficits = np.array(['Gait speed', 'Dom Grip strength', 'Non-dom grip str', 'ADL score','IADL score', 'Chair rises','Leg raise','Full tandem stance', 'Self-rated health', 'Eyesight','Hearing', 'Walking ability', 'Diastolic blood pressure', 'Systolic blood pressure', 'Pulse', 'Triglycerides','C-reactive protein','HDL cholesterol','LDL cholesterol','Glucose','IGF-1','Hemoglobin','Fibrinogen','Ferritin', 'Total cholesterol', r'White blood cell count', 'MCH', 'Glycated hemoglobin', 'Vitamin-D'])
 postfix = '_sample' if args.dataset=='sample' else ''
@@ -40,7 +43,7 @@ postfix = '_sample' if args.dataset=='sample' else ''
 N = 29
 
 model = Model('cpu', N, args.gamma_size, args.z_size, args.decoder_size, args.Nflows, args.flow_hidden, args.f_nn_size, 0, 0, 0.5)
-model.load_state_dict(torch.load('../Parameters/train%d_Model_DJIN_epoch%d%s.params'%(args.job_id, args.epoch,postfix),map_location='cpu'))
+model.load_state_dict(torch.load(dir+'/../Parameters/train%d_Model_DJIN_epoch%d%s.params'%(args.job_id, args.epoch,postfix),map_location='cpu'))
 
 mean = model.mean.detach().numpy()*(np.ones((N,N)) - np.eye(N))
 scale = model.logscale.exp().detach().numpy()*(np.ones((N,N)) - np.eye(N))
@@ -87,7 +90,7 @@ ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 
 plt.tight_layout()
-plt.savefig('../Plots/Posterior_network_uncertainty_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+plt.savefig(dir+'/../Plots/Posterior_network_uncertainty_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
 
 
 
@@ -116,7 +119,7 @@ for i in range(N):
                 network[i,j] = np.nan
                 network_scale[i,j] = np.nan
 
-np.save('../Analysis_Data/network_weights_job_id%d_epoch%d.npy'%(args.job_id, args.epoch), network)
+np.save(dir+'/../Analysis_Data/network_weights_job_id%d_epoch%d.npy'%(args.job_id, args.epoch), network)
                 
 network = network[order][:,order]        
 
@@ -132,4 +135,4 @@ ax.tick_params(labelsize=9)
 
 fig.tight_layout()
 plt.subplots_adjust(bottom=0.35)
-fig.savefig('../Plots/Posterior_network_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))
+fig.savefig(dir+'/../Plots/Posterior_network_job_id%d_epoch%d.pdf'%(args.job_id, args.epoch))

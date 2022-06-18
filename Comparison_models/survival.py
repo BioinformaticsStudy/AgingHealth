@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import sys
+import os
 
 
 from clean_data import clean_test_data
@@ -35,6 +36,7 @@ background = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'height', 'bm
 postfix = '_sample' if args.dataset=='train_sample' else ''
 if args.param_id is None:
     sys.exit('param_id must be specified')
+dir = os.path.dirname(os.path.realpath(__file__))
 
 def clean_data(data):
 
@@ -63,7 +65,7 @@ def clean_data(data):
 
     return X, y, initial_index
     
-train_data = pd.read_csv(f'../Data/{args.dataset}.csv')
+train_data = pd.read_csv(f'{dir}/../Data/{args.dataset}.csv')
 X_train, y_train, initial_index = clean_data(train_data)
 
 min_values = X_train[X_train > -100].min().values
@@ -115,4 +117,4 @@ for i in range(df_test.shape[0]):
     results[i,:len(np.arange(ages[i],121,1)),1] = predicted
 
 
-np.save('Predictions/Survival_trajectories_baseline_id%d_rfmice%s.npy'%(args.param_id,postfix), results)
+np.save(dir+'/Predictions/Survival_trajectories_baseline_id%d_rfmice%s.npy'%(args.param_id,postfix), results)

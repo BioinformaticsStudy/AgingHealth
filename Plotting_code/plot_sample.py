@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import sem
 from pandas import read_csv
 
+import os
 from torch.utils import data
 
 from pathlib import Path
@@ -35,20 +36,23 @@ torch.set_num_threads(6)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+dir = os.path.dirname(os.path.realpath(__file__))
+
+
 N = 29
 sims = 250
 dt = 0.5
 length = 50
 
-pop_avg = np.load('../Data/Population_averages.npy')
-pop_avg_env = np.load('../Data/Population_averages_env.npy')
-pop_std = np.load('../Data/Population_std.npy')
+pop_avg = np.load(dir+'/../Data/Population_averages.npy')
+pop_avg_env = np.load(dir+'/../Data/Population_averages_env.npy')
+pop_std = np.load(dir+'/../Data/Population_std.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 pop_avg_bins = np.arange(40, 105, 3)[:-2]
 
-test_name = '../Data/train_sample.csv'
+test_name = dir+'/../Data/train_sample.csv'
 test_set = Dataset(test_name, N, pop=False, min_count=10)
 num_test = 400
 test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
@@ -56,11 +60,11 @@ test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = Fals
 mean_T = test_set.mean_T
 std_T = test_set.std_T
 
-mean_deficits = torch.Tensor(read_csv('../Data/mean_deficits_sample.txt', index_col=0,sep=',',header=None).values[1:-3].flatten())
-std_deficits = torch.Tensor(read_csv('../Data/std_deficits_sample.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten())
+mean_deficits = torch.Tensor(read_csv(dir+'/../Data/mean_deficits_sample.txt', index_col=0,sep=',',header=None).values[1:-3].flatten())
+std_deficits = torch.Tensor(read_csv(dir+'/../Data/std_deficits_sample.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:-3].flatten())
 
 model = Model(device, N, args.gamma_size, args.z_size, args.decoder_size, args.Nflows, args.flow_hidden, args.f_nn_size, mean_T, std_T, dt, length).to(device)
-model.load_state_dict(torch.load('../Parameters/train%d_Model_DJIN_epoch%d_sample.params'%(args.job_id, args.epoch),map_location=device))
+model.load_state_dict(torch.load(dir+'/../Parameters/train%d_Model_DJIN_epoch%d_sample.params'%(args.job_id, args.epoch),map_location=device))
 model = model.eval()
 
 mean_results = np.zeros((test_set.__len__(), 100, N+1)) * np.nan
@@ -137,5 +141,5 @@ with torch.no_grad():
             ax[i].set_ylabel(deficits[i] + '(z-scored)')
             
         plt.tight_layout()
-        plt.savefig('../Plots/sample_plot.pdf')
+        plt.savefig(dir+'/../Plots/sample_plot.pdf')
         break

@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import sem, binned_statistic
 from pandas import read_csv
 from torch.utils import data
+import os
 
 from pathlib import Path
 import sys
@@ -39,7 +40,7 @@ if args.latentN == None:
 else:
     from Alternate_models.dataset_dim import Dataset
 
-
+dir = os.path.dirname(os.path.realpath(__file__))
 
 device = 'cpu'
 
@@ -47,24 +48,24 @@ N = 29 if args.latentN==None else args.latentN
 dt = 0.5
 length = 50
 
-pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+pop_avg = np.load(f'{dir}/../Data/Population_averages{postfix}.npy')
+pop_avg_env = np.load(f'{dir}/../Data/Population_averages_env{postfix}.npy')
+pop_std = np.load(f'{dir}/../Data/Population_std{postfix}.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 
-test_name = f'../Data/test{postfix}.csv'
+test_name = f'{dir}/../Data/test{postfix}.csv'
 test_set = Dataset(test_name, N, pop=False, min_count=10)
 num_test = test_set.__len__()
 test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
 
 with torch.no_grad():
     
-    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_%s%s.npy'%(args.job_id,args.epoch,model_name,postfix))
+    survival = np.load(dir+'/../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_%s%s.npy'%(args.job_id,args.epoch,model_name,postfix))
     
     if not args.no_compare: 
-        linear = np.load(f'../Comparison_models/Predictions/Survival_trajectories_baseline_id{args.compare_id}_rfmice{postfix}.npy')
+        linear = np.load(f'{dir}/../Comparison_models/Predictions/Survival_trajectories_baseline_id{args.compare_id}_rfmice{postfix}.npy')
     
     start = 0
     for data in test_generator:
@@ -275,9 +276,9 @@ ax.xaxis.set_minor_locator(MultipleLocator(5))
 plt.yscale('log')
 plt.legend(loc = 'lower right')
 plt.tight_layout()
-plt.savefig('../Plots/Brier_score_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+plt.savefig(dir+'/../Plots/Brier_score_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
 
-with open(f'../Analysis_Data/IBS_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
+with open(f'{dir}/../Analysis_Data/IBS_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
     outfile.writelines(str(IBS))
     if not args.no_compare:
         outfile.writelines(',' + str(IBS_linear))

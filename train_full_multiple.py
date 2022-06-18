@@ -29,13 +29,14 @@ parser.add_argument('--end', type=int, default=35, help='N for the final model')
 args = parser.parse_args()
 
 Ns = list(np.arange(args.start,args.end,args.step)) + [args.end] + [29]
+dir = os.path.dirname(os.path.realpath(__file__))
 
 
 for N in Ns:
     print('*'*100 + f'\ntraining model with N={N}\n' + '*'*100)
     # split data
     postfix = f'_latent{N}_sample' if args.dataset=='sample' else f'_latent{N}'
-    if not os.path.isdir(f'/Data/train{postfix}_files'):
+    if not os.path.isdir(f'{dir}/Data/train{postfix}_files'):
         create_cv(args.dataset,N) 
         
     population_averages_dim.run(args.dataset,N)

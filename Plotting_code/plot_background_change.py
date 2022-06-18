@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import argparse
+import os
 
 parser = argparse.ArgumentParser('Plot_Background_Change')
 parser.add_argument('--dataset', default='elsa',choices=['elsa','sample'])
@@ -19,8 +20,9 @@ deficits = ['gait speed', 'grip dom', 'grip ndom', 'FI ADL', 'FI IADL', 'chair',
          'crp','hdl','ldl','glucose','igf1','hgb','fib','fer', 'chol', 'wbc', 'mch', 'hba1c', 'vitd']
 
 all = env + deficits
+dir = os.path.dirname(os.path.realpath(__file__))
 
-data = pd.read_csv(f'../Data/{file}.csv')[['id'] + all]
+data = pd.read_csv(f'{dir}/../Data/{file}.csv')[['id'] + all]
 changes = np.zeros(len(all))
 
 for i, variable in enumerate(all):
@@ -35,4 +37,4 @@ sns.set(font_scale=.5)
 plot = sns.barplot(y=all,x=changes, orient='h',color='b')
 plot.set_xlabel('Number of individuals with more than one value')
 fig = plot.get_figure()
-fig.savefig(f'../Plots/background_changes_distribution{postfix}.pdf')
+fig.savefig(f'{dir}/../Plots/background_changes_distribution{postfix}.pdf')

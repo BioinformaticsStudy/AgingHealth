@@ -4,10 +4,12 @@ import pandas as pd
 import argparse
 import numpy as np
 import seaborn as sns
+import os
 
 parser = argparse.ArgumentParser('data info')
 parser.add_argument('--dataset', type=str,default='elsa', choices=['elsa','sample'],help='what dataset is read in; either \'elsa\' or \'sample\'')
 args = parser.parse_args()
+dir = os.path.dirname(os.path.realpath(__file__))
 
 def readData(infiles):
     #columns to be output
@@ -88,13 +90,13 @@ def readData(infiles):
 
 postfix = '' if args.dataset=='elsa' else '_sample'
 
-fullData = '../Data/sample_data.csv' if args.dataset=='sample' else "../Data/ELSA_cleaned.csv"
-trainData = f"../Data/train{postfix}.csv"
-testData = f"../Data/test{postfix}.csv"
-validData = f"../Data/valid{postfix}.csv"
+fullData = dir+'/../Data/sample_data.csv' if args.dataset=='sample' else dir+"/../Data/ELSA_cleaned.csv"
+trainData = f"{dir}/../Data/train{postfix}.csv"
+testData = f"{dir}/../Data/test{postfix}.csv"
+validData = f"{dir}/../Data/valid{postfix}.csv"
 
 #map the file name to the row name
 infiles = {fullData:"full_data", trainData:"train_data", testData:"test_data", validData:"valid_data"}
 
 data = readData(infiles)
-data.to_csv(f"../Data/data_info{postfix}.csv")
+data.to_csv(f"{dir}/../Data/data_info{postfix}.csv")

@@ -2,13 +2,15 @@
 
 import pandas as pd
 import argparse
+import os
 
 parser = argparse.ArgumentParser('Sample')
 parser.add_argument('--size', type=int, default=30,help='the amount of ids to be included in the sample')
 args = parser.parse_args()
 size = args.size
+dir = os.path.dirname(os.path.realpath(__file__))
 
-fullData = pd.read_csv('../Data/ELSA_cleaned.csv')
+fullData = pd.read_csv(dir+'/../Data/ELSA_cleaned.csv')
 sampleData = fullData.drop_duplicates(subset=['id']).sample(size)
 output = pd.DataFrame(columns=fullData.columns)
 for i,row in sampleData.iterrows():
@@ -16,5 +18,5 @@ for i,row in sampleData.iterrows():
     individualData = fullData.loc[fullData['id']==id]
     output = output.append(individualData)
 
-output.to_csv('../Data/sample_data.csv',index=False)
+output.to_csv(dir+'/../Data/sample_data.csv',index=False)
 

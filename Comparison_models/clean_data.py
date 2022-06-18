@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from pandas import read_csv
+import os
 
 from pathlib import Path
 import sys
@@ -12,10 +13,11 @@ from DataLoader.dataset import Dataset
 from DataLoader.collate import custom_collate
 
 def clean_test_data(longitudinal=False, data='test'):
+    dir = os.path.dirname(os.path.realpath(__file__))
     if data == 'test':
-        folder = '../Data/'+data+'_files/'
+        folder = dir+'../Data/'+data+'_files/'
     else:
-        folder = '../Data/'+data+'_files/'
+        folder = dir+'../Data/'+data+'_files/'
     
     longitudinal_data = torch.load(folder + 'longitudinal.pt').numpy()
     times_data = torch.load(folder + 'times.pt').numpy()
@@ -41,21 +43,21 @@ def clean_test_data(longitudinal=False, data='test'):
 
 def clean_test_data_predictions(args, device='cpu', N = 29):
   
-    pop_avg = np.load('../Data/Population_averages.npy')
-    pop_avg_env = np.load('../Data/Population_averages_env.npy')
-    pop_std = np.load('../Data/Population_std.npy')
+    pop_avg = np.load(dir+'/../Data/Population_averages.npy')
+    pop_avg_env = np.load(dir+'/../Data/Population_averages_env.npy')
+    pop_std = np.load(dir+'/../Data/Population_std.npy')
     pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float().to(device)
     pop_avg_env = torch.from_numpy(pop_avg_env).float().to(device)
     pop_std = torch.from_numpy(pop_std[...,1:]).float().to(device)
     pop_avg_bins = np.arange(40, 105, 3)[:-2]
     
-    test_name = '../Data/test.csv'
+    test_name = dir+'/../Data/test.csv'
     test_set = Dataset(test_name, N, pop=False, min_count = 10)
     num_test = test_set.__len__()
     test_generator = torch.utils.data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
     
-    mean_deficits = read_csv('../Data/mean_deficits.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
-    std_deficits = read_csv('../Data/std_deficits.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
+    mean_deficits = read_csv(dir+'/../Data/mean_deficits.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
+    std_deficits = read_csv(dir+'/../Data/std_deficits.txt', index_col=0,sep=',',header=None, names = ['variable']).values[1:].flatten()
 
 
     for data in test_generator:

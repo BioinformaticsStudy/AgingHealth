@@ -34,6 +34,8 @@ parser.add_argument('--flow_hidden', type=int, default = 24)
 parser.add_argument('--f_nn_size', type=int, default = 12)
 parser.add_argument('--W_prior_scale', type=float, default = 0.05)
 args = parser.parse_args()
+dir = os.path.dirname(os.path.realpath(__file__))
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -43,8 +45,8 @@ test_after = 10
 test_average = 5
 
 # folders for output
-params_folder = 'Parameters/'
-output_folder = 'Output/'
+params_folder = dir+'/Parameters/'
+output_folder = dir+'/Output/'
 
 # setting up file for loss outputs
 loss_file = '%svalidation%d.loss'%(output_folder, args.job_id)
@@ -69,22 +71,22 @@ N = 29
 batch_size = args.batch_size
 dt = 0.5
 
-pop_avg = np.load('Data/Population_averages.npy')
-pop_avg_env = np.load('Data/Population_averages_env.npy')
-pop_std = np.load('Data/Population_std.npy')
+pop_avg = np.load(dir+'/Data/Population_averages.npy')
+pop_avg_env = np.load(dir+'/Data/Population_averages_env.npy')
+pop_std = np.load(dir+'/Data/Population_std.npy')
 pop_avg = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 
 
-train_name = 'Data/train.csv'
+train_name = dir+'/Data/train.csv'
 training_set = Dataset(train_name, N, pop=False, min_count = 6)
 training_generator = data.DataLoader(training_set,
                                      batch_size = batch_size,
                                      shuffle = True, drop_last = True, num_workers = num_workers, pin_memory=True,
                                      collate_fn = lambda x: custom_collate(x, pop_avg, pop_avg_env, pop_std, args.corruption))
 
-valid_name = 'Data/valid.csv'
+valid_name = dir+'/Data/valid.csv'
 validation_set = Dataset(valid_name, N, pop=False, min_count = 6)
 validation_generator = data.DataLoader(validation_set,
                                        batch_size = 1000,

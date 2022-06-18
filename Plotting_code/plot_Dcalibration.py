@@ -10,6 +10,7 @@ import sys
 file = Path(__file__). resolve()  
 package_root_directory = file.parents [1]  
 sys.path.append(str(package_root_directory))  
+import os
 
 from DataLoader.dataset import Dataset
 from DataLoader.collate import custom_collate
@@ -30,31 +31,31 @@ args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
 
 torch.set_num_threads(4)
-
 device = 'cpu'
 
+dir = os.path.dirname(os.path.realpath(__file__))
 N = 29
 dt = 0.5
 length = 50
 
-pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+pop_avg = np.load(f'{dir}/../Data/Population_averages{postfix}.npy')
+pop_avg_env = np.load(f'{dir}/../Data/Population_averages_env{postfix}.npy')
+pop_std = np.load(f'{dir}/../Data/Population_std{postfix}.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 pop_avg_bins = np.arange(40, 105, 3)[:-2]
 
-test_name = f'../Data/test{postfix}.csv'
+test_name = f'{dir}/../Data/test{postfix}.csv'
 test_set = Dataset(test_name, N, pop=False, min_count = 10)
 num_test = test_set.__len__()
 test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
 
 with torch.no_grad():
 
-    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+    survival = np.load(dir+'/../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
     if not args.no_compare:
-        linear=np.load(f'../Comparison_models/Predictions/Survival_trajectories_baseline_id1_rfmice{postfix}.npy')
+        linear=np.load(f'{dir}/../Comparison_models/Predictions/Survival_trajectories_baseline_id1_rfmice{postfix}.npy')
 
     start = 0
     for data in test_generator:
@@ -200,7 +201,7 @@ plt.ylabel('Survival probability', fontsize=14)
 plt.xlabel('Fraction in bin', fontsize=14)
 ax.tick_params(labelsize=11)
 plt.tight_layout()
-plt.savefig('../Plots/D-Calibration_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+plt.savefig(dir+'/../Plots/D-Calibration_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
 
 
 
@@ -244,4 +245,4 @@ plt.ylabel('Survival probability', fontsize=14)
 plt.xlabel('Fraction in bin', fontsize=14)
 ax.tick_params(labelsize=11)
 plt.tight_layout()
-plt.savefig('../Plots/D-Calibration_cox.pdf')
+plt.savefig(dir+'/../Plots/D-Calibration_cox.pdf')

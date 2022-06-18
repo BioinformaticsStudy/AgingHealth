@@ -21,6 +21,8 @@ parser = argparse.ArgumentParser('Pop_avg')
 parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa',help='the dataset that will be used to train the model; either \'elsa\' or \'sample\'')
 args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
+dir = os.path.dirname(os.path.realpath(__file__))
+
 
 def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
@@ -31,7 +33,7 @@ device = 'cpu'
 N = 29
 dt = 0.5
 
-train_name = f'Data/train{postfix}.csv' 
+train_name = f'{dir}/Data/train{postfix}.csv' 
 training_set = Dataset(train_name, N, pop=True)
 num_train = training_set.__len__()
 training_generator = data.DataLoader(training_set,
@@ -108,5 +110,5 @@ for sex in [0, 1]:
     avg_smooth[sex, :,0] = bin_centers
 
 
-np.save(f'Data/Population_averages{postfix}.npy', avg_smooth)
-np.save(f'Data/Population_averages_env{postfix}.npy', avg_env_smooth)
+np.save(f'{dir}/Data/Population_averages{postfix}.npy', avg_smooth)
+np.save(f'{dir}/Data/Population_averages_env{postfix}.npy', avg_env_smooth)

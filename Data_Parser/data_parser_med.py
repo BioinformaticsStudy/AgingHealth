@@ -359,6 +359,6 @@ data[outputColumns] = data[outputColumns].replace(2.0,0.0)
 print("writing to /Data...")
 #output
 for w in range(10):
-    data.xs(w,level=0)[outputColumns].to_csv('../Data/ELSA_Med_cleaned_wave'+str(w)+'.csv',index=False)
+    data.xs(w,level=0)[outputColumns].to_csv(dir+'/../Data/ELSA_Med_cleaned_wave'+str(w)+'.csv',index=False)
 print("medication data finished")
                                                   

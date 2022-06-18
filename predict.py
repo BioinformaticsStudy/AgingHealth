@@ -8,6 +8,7 @@ import numpy as np
 from scipy.stats import sem
 from pandas import read_csv
 from torch.utils import data
+import os
 
 from Utils.record import record
 from DJIN_Model.model import Model
@@ -28,6 +29,7 @@ parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa
 args = parser.parse_args()
 
 postfix = '_sample' if args.dataset == 'sample' else ''
+dir = os.path.dirname(os.path.realpath(__file__))
 
 
 torch.set_num_threads(6)
@@ -39,15 +41,15 @@ sims = 250
 dt = 0.5
 length = 50
 
-pop_avg = np.load(f'Data/Population_averages{postfix}.npy')
-pop_avg_env = np.load(f'Data/Population_averages_env{postfix}.npy')
-pop_std = np.load(f'Data/Population_std{postfix}.npy')
+pop_avg = np.load(f'{dir}/Data/Population_averages{postfix}.npy')
+pop_avg_env = np.load(f'{dir}/Data/Population_averages_env{postfix}.npy')
+pop_std = np.load(f'{dir}/Data/Population_std{postfix}.npy')
 pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 pop_avg_bins = np.arange(40, 105, 3)[:-2]
 
-test_name = f'Data/test{postfix}.csv'
+test_name = f'{dir}/Data/test{postfix}.csv'
 test_set = Dataset(test_name, N, pop=False, min_count=10)
 num_test = 400
 test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = False, collate_fn = lambda x: custom_collate(x, pop_avg_, pop_avg_env, pop_std, 1.0))
@@ -118,6 +120,6 @@ with torch.no_grad():
         
         start += size
         
-np.save('Analysis_Data/Mean_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id, args.epoch,postfix), mean_results)
-np.save('Analysis_Data/Std_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id, args.epoch,postfix), std_results)
-np.save('Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id, args.epoch,postfix), S_results)
+np.save(dir+'/Analysis_Data/Mean_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id, args.epoch,postfix), mean_results)
+np.save(dir+'/Analysis_Data/Std_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id, args.epoch,postfix), std_results)
+np.save(dir+'/Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id, args.epoch,postfix), S_results)

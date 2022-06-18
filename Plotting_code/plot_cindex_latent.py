@@ -6,6 +6,7 @@ file = Path(__file__). resolve()
 package_root_directory = file.parents [1]  
 sys.path.append(str(package_root_directory))  
 
+import os
 import argparse
 import torch
 import seaborn as sns
@@ -30,7 +31,7 @@ parser.add_argument('--djin_epoch',type=int,default=None)
 args = parser.parse_args()
 
 djin_compare = args.djin_id != None and args.djin_epoch != None
-
+dir = os.path.dirname(os.path.realpath(__file__))
 
 # latent
 Ns = list(np.arange(args.start,args.stop,args.step)) + [args.stop]
@@ -38,13 +39,13 @@ results = pd.DataFrame(index=Ns,columns=['C-index'])
 
 for N in Ns:
     postfix = f'_latent{N}_sample' if args.dataset=='sample' else f'_latent{N}'
-    test_name = f'../Data/test{postfix}.csv'
+    test_name = f'{dir}/../Data/test{postfix}.csv'
 
-    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id,args.epoch,postfix))    
+    survival = np.load(dir+'/../Analysis_Data/Survival_trajectories_job_id%d_epoch%d%s.npy'%(args.job_id,args.epoch,postfix))    
 
-    pop_avg = np.load(f'../Data/Population_averages{postfix}.npy')
-    pop_avg_env = np.load(f'../Data/Population_averages_env{postfix}.npy')
-    pop_std = np.load(f'../Data/Population_std{postfix}.npy')
+    pop_avg = np.load(f'{dir}/../Data/Population_averages{postfix}.npy')
+    pop_avg_env = np.load(f'{dir}/../Data/Population_averages_env{postfix}.npy')
+    pop_std = np.load(f'{dir}/../Data/Population_std{postfix}.npy')
     pop_avg_ = torch.from_numpy(pop_avg[...,1:]).float()
     pop_avg_env = torch.from_numpy(pop_avg_env).float()
     pop_std = torch.from_numpy(pop_std[...,1:]).float()
@@ -70,7 +71,7 @@ for N in Ns:
 # djin and latent
 if djin_compare:
     djin_set = '_sample' if args.dataset=='sample' else ''
-    with open(f'../Analysis_Data/overall_cindex_job_id{args.djin_id}_epoch{args.djin_epoch}{djin_set}.txt','r') as infile:
+    with open(f'{dir}/../Analysis_Data/overall_cindex_job_id{args.djin_id}_epoch{args.djin_epoch}{djin_set}.txt','r') as infile:
         lines = infile.readlines()[0].split(',')
         djin_cindex = float(lines[0])
         if len(lines) > 1:
@@ -101,5 +102,5 @@ if djin_compare:
 
 postfix = '_sample' if args.dataset=='sample' else ''
 fig = plot.get_figure()
-fig.savefig(f'../Plots/latent_cindex_by_dim_job_id{args.job_id}_epoch{args.epoch}{postfix}.pdf')
+fig.savefig(f'{dir}/../Plots/latent_cindex_by_dim_job_id{args.job_id}_epoch{args.epoch}{postfix}.pdf')
 

@@ -236,6 +236,6 @@ for w in [0,1,2,3,5,6,7,8]:
 print("writing to /Data...")
 outputColumns = ['idauniq','ADL','IADL','FI ADL','FI IADL','ADL count','IADL count']
 for i in [1,2,3,4,6,7,8,9]:
-    outfile = '../Data/ELSA_Frailty_cleaned_wave'+str(i)+'.csv'
+    outfile = dir+'/../Data/ELSA_Frailty_cleaned_wave'+str(i)+'.csv'
     waves[i-1][outputColumns].to_csv(outfile,index=False)
 print("adl and iadl data finished")

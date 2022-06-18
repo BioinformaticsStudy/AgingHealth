@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 import argparse
+import os
 
 parser = argparse.ArgumentParser('plot_age_distribution')
 parser.add_argument('--dataset', type=str,default='elsa', choices=['elsa','sample'],help='what dataset is read in; either \'elsa\' or \'sample\'')
@@ -11,8 +12,9 @@ args = parser.parse_args()
 postfix = '_sample' if args.dataset=='sample' else ''
 unqPostfix = '_unique' if args.unique else ''
 
+dir = os.path.dirname(os.path.realpath(__file__))
 file = 'sample_data.csv' if args.dataset=='sample' else 'ELSA_cleaned.csv'
-data = pd.read_csv(f'../Data/{file}')
+data = pd.read_csv(f'{dir}/../Data/{file}')
 
 
 unqAgeData = pd.DataFrame(data.groupby('id')['age'].min())
@@ -34,4 +36,4 @@ if args.unique:
 else:
     plot = sns.histplot(data=ageData, x='age', hue='label', bins=bins).set_title('Age Distsribution')
 fig = plot.get_figure()
-fig.savefig(f'../Plots/age_distribution{unqPostfix}{postfix}.pdf')
+fig.savefig(f'{dir}/../Plots/age_distribution{unqPostfix}{postfix}.pdf')
