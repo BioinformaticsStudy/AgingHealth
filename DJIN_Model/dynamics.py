@@ -59,7 +59,7 @@ class SDEModel(nn.Module):
         for i in range(self.N):
             for j in range(self.N):
                 for k in range(self.N):
-                    Wx[:,:,i] += W[i,j,k]*(x[:,:,j] + x[:,:,k])
+                    Wx[:,:,i] += W[:,i,j,k]*(x[:,:,j] + x[:,:,k])
         return Wx + self.f(x,z)
         
 
