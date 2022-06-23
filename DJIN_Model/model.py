@@ -19,8 +19,8 @@ class Model(nn.Module):
         self.device = device
 
         # W parameters
-        self.register_parameter(name='mean', param = nn.Parameter(0.03*torch.randn(N,N)))
-        self.register_parameter(name='logscale', param = nn.Parameter(torch.log(0.03*torch.ones(N,N))))
+        self.register_parameter(name='mean', param = nn.Parameter(0.03*torch.randn(N,N,N)))
+        self.register_parameter(name='logscale', param = nn.Parameter(torch.log(0.03*torch.ones(N,N,N))))
 
         # sigma_y parameters
         self.register_parameter(name='logalpha', param = nn.Parameter(torch.log(10.0*torch.ones(N))))

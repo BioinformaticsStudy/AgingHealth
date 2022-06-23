@@ -15,8 +15,12 @@ class SDEModel(nn.Module):
         self.mean_T = mean_T
         self.std_T = std_T
         self.device = device
-        self.w_mask = (torch.ones(N,N) - torch.eye(N)).to(device) # mask for off-diagonal weights in network
-        med_size = 10
+        # self.w_mask = (torch.ones(N,N) - torch.eye(N)).to(device) # mask for off-diagonal weights in network
+        matrix_mask = torch.ones(N,N,N)
+        for i in range(N):
+            matrix_mask[i,:,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
+            matrix_mask[:,i,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
+            matrix_mask[:,:,i] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
 
         # diagonal neural net in dynamics
         self.f = DiagonalFunc(N, 2 + context_size, f_nn_size)
@@ -48,7 +52,16 @@ class SDEModel(nn.Module):
         return self.sigma_nn(x) + 1e-5
     
     def prior_drift(self, x, z, W):
-        return torch.matmul(x, self.w_mask*W) + self.f(x,z)
+        # return torch.matmul(x, self.w_mask*W) + self.f(x,z)
+        M = x.shape[0]
+        T = x.shape[1]
+        Wx = torch.zeros(M,T,self.N)
+        for i in range(self.N):
+            for j in range(self.N):
+                for k in range(self.N):
+                    Wx[:,:,i] += W[i,j,k]*(x[:,:,j] + x[:,:,k])
+        return Wx + self.f(x,z)
+        
 
     def posterior_drift(self, x, z, W):
         return torch.matmul(x, self.w_mask*W) + self.g(torch.cat((x,z),dim=-1)) + self.f(x,z)
@@ -61,12 +74,20 @@ class SDEModel(nn.Module):
 
     # output one step of posterior SDE and survival model
     def forward(self, x, h, t, context, W):
-        
+        M = x.shape[0]
+
         z_RNN = torch.cat(((t.unsqueeze(-1) - self.mean_T)/self.std_T, context), dim=-1)
         x_ = x.clone()
         
         log_Gamma, h = self.log_Gamma(torch.cat((x, (t.unsqueeze(-1) - self.mean_T)/self.std_T),dim=-1), h)
-        dx = torch.matmul(x.unsqueeze(1), self.w_mask*W).squeeze(1) + self.f(x, z_RNN) + self.g(torch.cat((x,z_RNN),dim=-1))
+        # dx = torch.matmul(x.unsqueeze(1), self.w_mask*W).squeeze(1) + self.f(x, z_RNN) + self.g(torch.cat((x,z_RNN),dim=-1))
+        Wx = torch.zeros(M,self.N)
+        for i in range(self.N):
+            for j in range(self.N):
+                for k in range(self.N):
+                    Wx[:,i] += W[i,j,k]*(x[:,j]+x[:,k])
+        dx = Wx + self.f(x,z_RNN) + self.g(torch.cat((x,z_RNN),dim=-1))
+
         log_dS = -torch.exp(log_Gamma).reshape(x.shape[0])
         
         return dx, log_dS, log_Gamma, h, self.sigma_x(x_)

@@ -109,7 +109,12 @@ model_parameters = filter(lambda p: p.requires_grad, model.parameters())
 params = sum([np.prod(p.size()) for p in model_parameters])
 print('Model has %d parameters'%params)
 
-matrix_mask = (1 - torch.eye(N).to(device))
+# 0 at any place where there is the same variable twice
+matrix_mask = torch.ones(N,N,N)
+for i in range(N):
+    matrix_mask[i,:,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
+    matrix_mask[:,i,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
+    matrix_mask[:,:,i] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
 
 
 kl_scheduler_dynamics = LinearScheduler(300)
