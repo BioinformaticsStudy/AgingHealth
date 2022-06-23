@@ -147,8 +147,8 @@ for epoch in range(niters):
         summed_weights = torch.sum(sample_weights)
         
         kl_term = \
-          beta_network*torch.sum(matrix_mask*(torch.sum(sample_weights*(W_posterior.log_prob(W).permute(1,2,0)),dim=-1) - \
-                                 torch.sum(sample_weights*(W_prior.log_prob(W).permute(1,2,0)),dim=-1))
+          beta_network*torch.sum(matrix_mask*(torch.sum(sample_weights*(W_posterior.log_prob(W).permute(1,2,3,0)),dim=-1) - \
+                                 torch.sum(sample_weights*(W_prior.log_prob(W).permute(1,2,3,0)),dim=-1))
                                 ) + \
           torch.sum(torch.sum(sample_weights*((mask*sigma_posterior.log_prob(sigma_y)).permute(1,2,0)),dim=(1,2)) - \
                     torch.sum(sample_weights*((mask*sigma_prior.log_prob(sigma_y)).permute(1,2,0)),dim=(1,2))
@@ -196,8 +196,8 @@ for epoch in range(niters):
                     pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, W_mean = model(data, sigma_y, test=True)
                     summed_weights = torch.sum(sample_weights)
                     
-                    kl_term = torch.sum(matrix_mask*(torch.sum(sample_weights*(W_posterior.log_prob(W).permute(1,2,0)),dim=-1) + \
-                                        torch.sum(sample_weights*(W_prior.log_prob(W).permute(1,2,0)),dim=-1))
+                    kl_term = torch.sum(matrix_mask*(torch.sum(sample_weights*(W_posterior.log_prob(W).permute(1,2,3,0)),dim=-1) + \
+                                        torch.sum(sample_weights*(W_prior.log_prob(W).permute(1,2,3,0)),dim=-1))
                                        ) + \
                               torch.sum(torch.sum(sample_weights*((mask*sigma_posterior.log_prob(sigma_y)).permute(1,2,0)),dim=(1,2)) - \
                                         torch.sum(sample_weights*((mask*sigma_prior.log_prob(sigma_y)).permute(1,2,0)),dim=(1,2))
