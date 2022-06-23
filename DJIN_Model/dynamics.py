@@ -55,11 +55,14 @@ class SDEModel(nn.Module):
         # return torch.matmul(x, self.w_mask*W) + self.f(x,z)
         M = x.shape[0]
         T = x.shape[1]
+        print('X ' + x.shape)
+        print('W ' + W.shape)
         Wx = torch.zeros(M,T,self.N)
         for i in range(self.N):
             for j in range(self.N):
                 for k in range(self.N):
-                    Wx[:,:,i] += W[:,i,j,k]*(x[:,:,j] + x[:,:,k])
+                    for t in range(T):
+                        Wx[:,t,i] += W[:,i,j,k]*(x[:,t,j] + x[:,t,k])
         return Wx + self.f(x,z)
         
 
