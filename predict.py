@@ -58,7 +58,7 @@ mean_T = test_set.mean_T
 std_T = test_set.std_T
 
 model = Model(device, N, args.gamma_size, args.z_size, args.decoder_size, args.Nflows, args.flow_hidden, args.f_nn_size, mean_T, std_T, dt, length).to(device)
-model.load_state_dict(torch.load('Parameters/train%d_Model_DJIN_epoch%d%s.params'%(args.job_id, args.epoch,postfix),map_location=device))
+model.load_state_dict(torch.load(dir+'/Parameters/train%d_Model_DJIN_epoch%d%s.params'%(args.job_id, args.epoch,postfix),map_location=device))
 model = model.eval()
 
 mean_results = np.zeros((test_set.__len__(), 100, N+1)) * np.nan
@@ -92,7 +92,7 @@ with torch.no_grad():
             
             
         t0 = t[:,0]
-        record_times = [torch.from_numpy(np.arange(t0[b].cpu(), 121, 1)).to(device) for b in range(size)]
+        record_times = [torch.from_numpy(np.arange(t0[b].cpu(), 110, 1)).to(device) for b in range(size)]
         X_record, S_record = record(t, X, S, record_times, dt)
         X_std_record, alive_record = record(t, X_std, alive, record_times, dt)
         t0 = t0.cpu()
@@ -109,14 +109,14 @@ with torch.no_grad():
 
         for b in range(size):
 
-            mean_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
-            std_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
-            S_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
+            mean_results[start+b, :len(np.arange(t0[b], 110, 1)), 0] = np.arange(t0[b], 110, 1)
+            std_results[start+b, :len(np.arange(t0[b], 110, 1)), 0] = np.arange(t0[b], 110, 1)
+            S_results[start+b, :len(np.arange(t0[b], 110, 1)), 0] = np.arange(t0[b], 110, 1)
             
             mean_results[start+b, :X_sum[b].shape[1], 1:] = (X_sum[b]/X_count[b]).permute(1,0).numpy()
             std_results[start+b, :X_sum_std[b].shape[1], 1:] = np.sqrt((X_sum2[b]/X_count[b] - (X_sum_std[b]/X_count[b]).pow(2)).permute(1,0).numpy())
-            S_results[start+b, :len(np.arange(t0[b], 121, 1)), 1] = torch.mean(S_record[b], dim = 0)
-            S_results[start+b, :len(np.arange(t0[b], 121, 1)), 2] = torch.std(S_record[b], dim = 0)
+            S_results[start+b, :len(np.arange(t0[b], 110, 1)), 1] = torch.mean(S_record[b], dim = 0)
+            S_results[start+b, :len(np.arange(t0[b], 110, 1)), 2] = torch.std(S_record[b], dim = 0)
         
         start += size
         

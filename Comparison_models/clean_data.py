@@ -15,9 +15,9 @@ from DataLoader.collate import custom_collate
 def clean_test_data(longitudinal=False, data='test'):
     dir = os.path.dirname(os.path.realpath(__file__))
     if data == 'test':
-        folder = dir+'../Data/'+data+'_files/'
+        folder = dir+'/../Data/'+data+'_files/'
     else:
-        folder = dir+'../Data/'+data+'_files/'
+        folder = dir+'/../Data/'+data+'_files/'
     
     longitudinal_data = torch.load(folder + 'longitudinal.pt').numpy()
     times_data = torch.load(folder + 'times.pt').numpy()

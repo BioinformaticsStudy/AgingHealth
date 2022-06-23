@@ -110,11 +110,11 @@ df_test['age'] = df_test['age']/100.0
 results = np.zeros((df_test.shape[0], 100, 2)) * np.nan
 for i in range(df_test.shape[0]):
     
-    unconditioned_sf = cph.predict_survival_function(df_test.iloc[i][['age'] + deficits + medications + background], np.arange(ages[i],121,1)).values[:,0]
+    unconditioned_sf = cph.predict_survival_function(df_test.iloc[i][['age'] + deficits + medications + background], np.arange(ages[i],110,1)).values[:,0]
     predicted = unconditioned_sf/unconditioned_sf[0]
     
-    results[i,:len(np.arange(ages[i],121,1)),0] = np.arange(ages[i],121,1)
-    results[i,:len(np.arange(ages[i],121,1)),1] = predicted
+    results[i,:len(np.arange(ages[i],110,1)),0] = np.arange(ages[i],110,1)
+    results[i,:len(np.arange(ages[i],110,1)),1] = predicted
 
 
 np.save(dir+'/Predictions/Survival_trajectories_baseline_id%d_rfmice%s.npy'%(args.param_id,postfix), results)
