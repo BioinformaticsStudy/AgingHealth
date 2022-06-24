@@ -19,7 +19,7 @@ from sklearn.linear_model import ElasticNet
 
 parser = argparse.ArgumentParser('Predict change')
 parser.add_argument('--param_id', type=int)
-parser.add_argument('--alpha', type=float, default = 1e-4)
+parser.add_argument('--alpha', type=float, default = 1e-2)
 parser.add_argument('--l1_ratio', type=float, default = 0.5)
 parser.add_argument('--max_depth', type=int, default = 10)
 parser.add_argument('--dataset', type=str, choices = ['train','train_sample'],default = 'train')
@@ -121,7 +121,7 @@ for i in range(N-1):
         X_train_imputed = imp.transform(X_train)
         X_train_imputed = (X_train_imputed.T*dt).T
         
-        model = ElasticNet(fit_intercept = False, alpha=args.alpha, l1_ratio=args.l1_ratio)
+        model = ElasticNet(fit_intercept = True, alpha=args.alpha, l1_ratio=args.l1_ratio)
         model.fit(X_train_imputed, y_train)
         
         print(i, model.score(X_train_imputed, y_train))
