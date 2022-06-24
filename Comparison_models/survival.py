@@ -20,7 +20,7 @@ parser.add_argument('--param_id', type=int)
 parser.add_argument('--alpha', type=float, default = 0.0001)
 parser.add_argument('--l1_ratio', type=float, default = 0.0)
 parser.add_argument('--max_depth', type=int, default = 10)
-parser.add_argument('--dataset', type=str, choices=['train','train_sample'],default = 'train')
+parser.add_argument('--dataset', type=str, choices=['test','test_sample'],default = 'test')
 args = parser.parse_args()
 
 deficits = ['gait speed', 'grip dom', 'grip ndom', 'FI ADL', 'FI IADL', 'chair','leg raise', 'full tandem', 'srh', 'eye',
@@ -33,7 +33,7 @@ medications = ['BP med', 'anticoagulent med', 'chol med', 'hip/knee treat', 'lun
 background = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'height', 'bmi', 'mobility', 'country',
               'alcohol', 'jointrep', 'fractures', 'sex', 'ethnicity']
     
-postfix = '_sample' if args.dataset=='train_sample' else ''
+postfix = '_sample' if args.dataset=='test_sample' else ''
 if args.param_id is None:
     sys.exit('param_id must be specified')
 dir = os.path.dirname(os.path.realpath(__file__))
@@ -65,7 +65,7 @@ def clean_data(data):
 
     return X, y, initial_index
     
-train_data = pd.read_csv(f'{dir}/../Data/{args.dataset}.csv')
+train_data = pd.read_csv(f'{dir}/../Data/train.csv')
 X_train, y_train, initial_index = clean_data(train_data)
 
 min_values = X_train[X_train > -100].min().values
@@ -104,6 +104,7 @@ X_test_imputed = imp.transform(X_test)
 print('test data ready')
 
 df_test = pd.DataFrame(X_test_imputed, columns = ['age'] + deficits + medications + background)
+df_test.drop(df_test[df_test.age < 10],inplace=True)
 ages = df_test['age'].values*1.0
 df_test['age'] = df_test['age']/100.0
 
