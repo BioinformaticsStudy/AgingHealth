@@ -104,7 +104,7 @@ X_test_imputed = imp.transform(X_test)
 print('test data ready')
 
 df_test = pd.DataFrame(X_test_imputed, columns = ['age'] + deficits + medications + background)
-df_test.drop(df_test[df_test.age < 10],inplace=True)
+df_test.drop(df_test[df_test.age < 10].index,inplace=True)
 ages = df_test['age'].values*1.0
 df_test['age'] = df_test['age']/100.0
 
