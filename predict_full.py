@@ -79,7 +79,7 @@ def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nfl
                 alive[s,:,1:] = torch.cumprod(torch.bernoulli(torch.exp(-1*pred_logGamma.exp()[:,:-1]*dt)), dim=1)
 
             t0 = t[:,0]
-            record_times = [torch.from_numpy(np.arange(t0[b].cpu(), 121, 1)).to(device) for b in range(size)]
+            record_times = [torch.from_numpy(np.arange(t0[b].cpu(), 110, 1)).to(device) for b in range(size)]
             X_record, S_record = record(t, X, S, record_times, dt)
             X_std_record, alive_record = record(t, X_std, alive, record_times, dt)
             t0 = t0.cpu()
@@ -96,14 +96,14 @@ def predict(job_id,epoch,niters,learning_rate,gamma_size,z_size,decoder_size,Nfl
                 X_count.append(torch.sum(alive_record[b], dim = 0).cpu())
 
             for b in range(size):
-                mean_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
-                std_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
-                S_results[start+b, :len(np.arange(t0[b], 121, 1)), 0] = np.arange(t0[b], 121, 1)
+                mean_results[start+b, :len(np.arange(t0[b], 110, 1)), 0] = np.arange(t0[b], 110, 1)
+                std_results[start+b, :len(np.arange(t0[b], 110, 1)), 0] = np.arange(t0[b], 110, 1)
+                S_results[start+b, :len(np.arange(t0[b], 110, 1)), 0] = np.arange(t0[b], 110, 1)
 
                 mean_results[start+b, :X_sum[b].shape[1], 1:] = (X_sum[b]/X_count[b]).permute(1,0).numpy()
                 std_results[start+b, :X_sum_std[b].shape[1], 1:] = np.sqrt((X_sum2[b]/X_count[b] - (X_sum_std[b]/X_count[b]).pow(2)).permute(1,0).numpy())
-                S_results[start+b, :len(np.arange(t0[b], 121, 1)), 1] = torch.mean(S_record[b], dim = 0)
-                S_results[start+b, :len(np.arange(t0[b], 121, 1)), 2] = torch.std(S_record[b], dim = 0)
+                S_results[start+b, :len(np.arange(t0[b], 110, 1)), 1] = torch.mean(S_record[b], dim = 0)
+                S_results[start+b, :len(np.arange(t0[b], 110, 1)), 2] = torch.std(S_record[b], dim = 0)
 
             start += size
     
