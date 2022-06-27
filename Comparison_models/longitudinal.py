@@ -1,12 +1,8 @@
-# trains and predicts longitudal data for linear model
-
 import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import itertools
-import sys
-import os
 
 from clean_data import clean_test_data
 
@@ -19,10 +15,10 @@ from sklearn.linear_model import ElasticNet
 
 parser = argparse.ArgumentParser('Predict change')
 parser.add_argument('--param_id', type=int)
-parser.add_argument('--alpha', type=float, default = 1e-2)
+parser.add_argument('--alpha', type=float, default = 1e-4)
 parser.add_argument('--l1_ratio', type=float, default = 0.5)
 parser.add_argument('--max_depth', type=int, default = 10)
-parser.add_argument('--dataset', type=str, choices = ['test','test_sample'],default = 'test')
+parser.add_argument('--dataset', type=str, default = 'test')
 args = parser.parse_args()
 
 deficits = ['gait speed', 'grip dom', 'grip ndom', 'FI ADL', 'FI IADL', 'chair','leg raise', 'full tandem', 'srh', 'eye',
@@ -37,12 +33,7 @@ background = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'height', 'bm
     
 N = 29
     
-postfix = '_sample' if args.dataset == 'test_sample' else ''
-dir = os.path.dirname(os.path.realpath(__file__))
-if args.param_id is None: 
-    sys.exit('param_id must be specified')
-
-train_data = pd.read_csv(dir+'/../Data/train.csv')
+train_data = pd.read_csv('../Data/train.csv')
 train_data['weight'] = 1
 
 # train imputation
@@ -67,7 +58,7 @@ predictions = np.zeros((X_test.shape[0], 29, N + 1))
 print('test data ready')
 
 for i in range(N-1):
-
+    
     initial_index = []
 
     X = []
@@ -100,38 +91,33 @@ for i in range(N-1):
                 dY.append(dy)
             count += 1
             
-    if len(X) > 0:
 
-        dt = np.array(dt)
-        T0 = np.array(T0)
-        X = np.array(X)
-        U = np.array(U)
-        dY = np.array(dY)
+    dt = np.array(dt)
+    T0 = np.array(T0)
+    X = np.array(X)
+    U = np.array(U)
+    dY = np.array(dY)
+    
+    X_ = np.concatenate((T0[:,np.newaxis], X), axis=1)
+    
+    
+    X_train = np.concatenate( (X_, U), axis=1)
+    y_train = dY
+    
+    X_train_imputed = imp.transform(X_train)
+    X_train_imputed = (X_train_imputed.T*dt).T
+    
+    model = ElasticNet(fit_intercept = False, alpha=args.alpha, l1_ratio=args.l1_ratio)
+    model.fit(X_train_imputed, y_train)
+    
+    print(i, model.score(X_train_imputed, y_train))
+    
+    X_test_i = imp.transform(X_test)
+    
+    for t, delta_t in enumerate(np.arange(0, 29, dtype=int)):
+        X_test_i_t = X_test_i * delta_t
+        
+        predictions[:,t, i + 1] = model.predict(X_test_i_t) + X_test_i[:, i + 1]
+        predictions[:,t, 0] = X_test_i[:, 0] + delta_t
 
-
-        print('i: ' + str(i))
-        print('X: ' + str(X.shape))
-        print('T0: ' + str(T0.shape))  
-        X_ = np.concatenate((T0[:,np.newaxis], X), axis=1)
-        
-        
-        X_train = np.concatenate( (X_, U), axis=1)
-        y_train = dY
-        
-        X_train_imputed = imp.transform(X_train)
-        X_train_imputed = (X_train_imputed.T*dt).T
-        
-        model = ElasticNet(fit_intercept = True, alpha=args.alpha, l1_ratio=args.l1_ratio)
-        model.fit(X_train_imputed, y_train)
-        
-        print(i, model.score(X_train_imputed, y_train))
-        
-        X_test_i = imp.transform(X_test)
-        
-        for t, delta_t in enumerate(np.arange(0, 29, dtype=int)):
-            X_test_i_t = X_test_i * delta_t
-            
-            predictions[:,t, i + 1] = model.predict(X_test_i_t) + X_test_i[:, i + 1]
-            predictions[:,t, 0] = X_test_i[:, 0] + delta_t
-
-np.save(dir+'/Predictions/Longitudinal_predictions_baseline_id%d_rfmice%s.npy'%(args.param_id,postfix), predictions)
+np.save('Predictions/Longitudinal_predictions_baseline_id%d_rfmice.npy'%(args.param_id), predictions)
