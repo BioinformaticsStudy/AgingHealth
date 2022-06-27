@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import itertools
+import sys
+import os
 
 from clean_data import clean_test_data
 
@@ -31,9 +33,13 @@ medications = ['BP med', 'anticoagulent med', 'chol med', 'hip/knee treat', 'lun
 background = ['longill', 'limitact', 'effort', 'smkevr', 'smknow', 'height', 'bmi', 'mobility', 'country',
               'alcohol', 'jointrep', 'fractures', 'sex', 'ethnicity']
     
+if args.param_id is None:
+    sys.exit('param_id must be specified')
+dir = os.path.dirname(os.path.realpath(__file__))
+
 N = 29
     
-train_data = pd.read_csv('../Data/train.csv')
+train_data = pd.read_csv(dir + '/../Data/train.csv')
 train_data['weight'] = 1
 
 # train imputation
@@ -120,4 +126,4 @@ for i in range(N-1):
         predictions[:,t, i + 1] = model.predict(X_test_i_t) + X_test_i[:, i + 1]
         predictions[:,t, 0] = X_test_i[:, 0] + delta_t
 
-np.save('Predictions/Longitudinal_predictions_baseline_id%d_rfmice.npy'%(args.param_id), predictions)
+np.save(dir + 'Predictions/Longitudinal_predictions_baseline_id%d_rfmice.npy'%(args.param_id), predictions)
