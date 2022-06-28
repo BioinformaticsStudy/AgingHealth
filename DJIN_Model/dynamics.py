@@ -57,7 +57,7 @@ class SDEModel(nn.Module):
         # return torch.matmul(x, self.w_mask*W) + self.f(x,z)
         M = x.shape[0]
         T = x.shape[1]
-        Wx = torch.zeros(M,T,self.N)
+        # Wx = torch.zeros(M,T,self.N)
         # for i in range(self.N):
         #     for j in range(self.N):
         #         for k in range(self.N):
@@ -74,8 +74,9 @@ class SDEModel(nn.Module):
         x_rows = x_cols.permute(0,1,3,2) # every row has same values
         x_star = x_cols + x_rows
         
-        for i in range(self.N):
-            Wx[:,:,i] = torch.sum(x_star*(self.w_mask*W.unsqueeze(1))[:,:,i,:,:],dim=(-1,-2))
+        # for i in range(self.N):
+        #     Wx[:,:,i] = torch.sum(x_star*(self.w_mask*W.unsqueeze(1))[:,:,i,:,:],dim=(-1,-2))
+        Wx = torch.sum(x_star.unsqueeze(2) * (self.w_mask*W).unsqueeze(1),dim=(-1,-2))
 
         return Wx + self.f(x,z)
 
@@ -112,8 +113,9 @@ class SDEModel(nn.Module):
         x_rows = x_cols.permute(0,2,1) # every row has same values
         x_star = x_cols + x_rows
 
-        for i in range(self.N):
-            Wx[:,i] = torch.sum(x_star*(self.w_mask*W)[i,:,:],dim=(1,2))
+        # for i in range(self.N):
+        #     Wx[:,i] = torch.sum(x_star*(self.w_mask*W)[i,:,:],dim=(1,2))
+        Wx = torch.sum(x_star.unsqueeze(1)*(self.w_mask*W),axis=(-1,-2))
         dx = Wx + self.f(x,z_RNN) + self.g(torch.cat((x,z_RNN),dim=-1))
         log_dS = -torch.exp(log_Gamma).reshape(x.shape[0])
         
