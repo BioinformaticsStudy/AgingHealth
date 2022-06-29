@@ -40,7 +40,6 @@ dir = os.path.dirname(os.path.realpath(__file__))
 N = 29
 
 train_data = pd.read_csv(dir + '/../Data/train.csv')
-train_data.drop(train_data[train_data.wave == 9].index,inplace=True)
 train_data['weight'] = 1
 
 # train imputation
