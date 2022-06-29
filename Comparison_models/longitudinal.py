@@ -127,4 +127,4 @@ for i in range(N-1):
         predictions[:,t, i + 1] = model.predict(X_test_i_t) + X_test_i[:, i + 1]
         predictions[:,t, 0] = X_test_i[:, 0] + delta_t
 
-np.save(dir + 'Predictions/Longitudinal_predictions_baseline_id%d_rfmice.npy'%(args.param_id), predictions)
+np.save(dir + '/Predictions/Longitudinal_predictions_baseline_id%d_rfmice.npy'%(args.param_id), predictions)
