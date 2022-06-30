@@ -22,13 +22,13 @@ def loss(X, recon_x0, log_Gamma, log_S, survival_mask, dead_mask, after_dead_mas
     
     return -1*( torch.sum( batch_log_likelihood,dim=0) + torch.sum(batch_weights*batch_log_S_likelihood,dim=0))
 
-def sde_KL_loss(X, times, context, survival_mask, g_result, prior, sigma_x, dt, mean_T, std_T, batch_weights, med, W, W_mean):
+def sde_KL_loss(X, times, context, survival_mask, g_result, prior, sigma_x, dt, mean_T, std_T, batch_weights, med, W_2, W_3):
     
     T = X.shape[1]
     
     c =  torch.cat([context[:,None,:]]*(T),dim=1)   
     
-    f_result = prior(X, torch.cat(((times.unsqueeze(-1) - mean_T)/std_T, c),dim=-1), W)
+    f_result = prior(X, torch.cat(((times.unsqueeze(-1) - mean_T)/std_T, c),dim=-1), W_2,W_3)
 
     # divide trapezoid rule up into parts
     full_integral = dt*torch.sum( torch.norm((g_result[:,1:-1] - f_result[:,1:-1])/sigma_x[:,1:-1], dim = -1).pow(2), dim = 1)

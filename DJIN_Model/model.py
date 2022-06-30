@@ -19,8 +19,10 @@ class Model(nn.Module):
         self.device = device
 
         # W parameters
-        self.register_parameter(name='mean', param = nn.Parameter(0.03*torch.randn(N,N,N)))
-        self.register_parameter(name='logscale', param = nn.Parameter(torch.log(0.03*torch.ones(N,N,N))))
+        self.register_parameter(name='mean_2', param = nn.Parameter(0.03*torch.randn(N,N)))
+        self.register_parameter(name='logscale_2', param = nn.Parameter(torch.log(0.03*torch.ones(N,N))))
+        self.register_parameter(name='mean_3', param = nn.Parameter(0.03*torch.randn(N,N,N)))
+        self.register_parameter(name='logscale_3', param = nn.Parameter(torch.log(0.03*torch.ones(N,N,N))))
 
         # sigma_y parameters
         self.register_parameter(name='logalpha', param = nn.Parameter(torch.log(10.0*torch.ones(N))))
@@ -86,9 +88,9 @@ class Model(nn.Module):
         h2 = h[:,self.gamma_size:]
         h = (h1.unsqueeze(0).contiguous(), h2.unsqueeze(0).contiguous())
         
-        t, pred_X, pred_S, pred_logGamma, pred_sigma_X, drifts = self.solver._solve(self.dynamics, x0, t0, batch_size, context, h, self.mean)
+        t, pred_X, pred_S, pred_logGamma, pred_sigma_X, drifts = self.solver._solve(self.dynamics, x0, t0, batch_size, context, h, self.mean_2,self.mean_3)
         
-        return pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, self.mean
+        return pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, self.mean_2, self.mean_3
 
     def generate(self, t0, env, med, sigma_y, W):
         

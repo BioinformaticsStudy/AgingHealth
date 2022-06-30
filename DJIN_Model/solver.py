@@ -14,7 +14,7 @@ class SolveSDE(nn.Module):
         self.dt = dt
         self.num_t = int(length/dt)
     
-    def _solve(self, model, x0, t0, M, context, h, W):
+    def _solve(self, model, x0, t0, M, context, h, W_2,W_3):
 
         X = torch.zeros((M, self.num_t, self.N)).to(self.device)
         log_S = torch.zeros((M, self.num_t)).to(self.device)
@@ -30,7 +30,7 @@ class SolveSDE(nn.Module):
         
         for i in range(1, self.num_t):
             
-            dx,  log_dS, log_Gamma, h, sigma_x = model(X[:, i-1, :], h, times[:,i-1], context, W)
+            dx,  log_dS, log_Gamma, h, sigma_x = model(X[:, i-1, :], h, times[:,i-1], context, W_2,W_3)
   
             x_tilde = X[:, i-1, :] + self.dt*dx + sigma_x*np.sqrt(self.dt)
             X[:, i, :] = X[:, i-1, :] + self.dt*dx + torch.randn_like(X[:,i-1,:])*sigma_x*np.sqrt(self.dt) \

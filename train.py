@@ -111,12 +111,13 @@ params = sum([np.prod(p.size()) for p in model_parameters])
 print('Model has %d parameters'%params)
 
 # 0 at any place where there is the same variable twice
-matrix_mask = torch.ones(N,N,N)
+matrix_mask_2 = (torch.ones(N,N) - torch.eye(N)).to(device)
+matrix_mask_3 = torch.ones(N,N,N)
 for i in range(N):
-    matrix_mask[i,:,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
-    matrix_mask[:,i,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
-    matrix_mask[:,:,i] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
-matrix_mask.to(device)
+    matrix_mask_3[i,:,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
+    matrix_mask_3[:,i,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
+    matrix_mask_3[:,:,i] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
+matrix_mask_3.to(device)
 
 kl_scheduler_dynamics = LinearScheduler(300)
 kl_scheduler_vae = LinearScheduler(500)
@@ -137,18 +138,24 @@ for epoch in range(niters):
         print('data read')
         optimizer.zero_grad()
         
-        W_posterior = torch.distributions.laplace.Laplace(model.mean, model.logscale.exp())
+        W_2_posterior = torch.distributions.laplace.Laplace(model.mean_2, model.logscale_2.exp())
+        W_3_posterior = torch.distributions.laplace.Laplace(model.mean_3, model.logscale_3.exp())
         sigma_posterior = torch.distributions.gamma.Gamma(model.logalpha.exp(), model.logbeta.exp())
         
-        W = W_posterior.rsample((data['Y'].shape[0],))
+        W_2 = W_2_posterior.rsample((data['Y'].shape[0],))
+        W_3 = W_3_posterior.rsample((data['Y'].shape[0],))
         sigma_y = sigma_posterior.rsample((data['Y'].shape[0],data['Y'].shape[1])) + 1e-6
-        pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, W_mean = model(data, sigma_y)
+        pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, W_mean_2,W_mean_3 = model(data, sigma_y)
         summed_weights = torch.sum(sample_weights)
         
         kl_term = \
-          beta_network*torch.sum(matrix_mask*(torch.sum(sample_weights*(W_posterior.log_prob(W).permute(1,2,3,0)),dim=-1) - \
-                                 torch.sum(sample_weights*(W_prior.log_prob(W).permute(1,2,3,0)),dim=-1))
+          beta_network*(torch.sum(matrix_mask_3*(torch.sum(sample_weights*(W_2_posterior.log_prob(W_2).permute(1,2,0)),dim=-1) - \
+                                 torch.sum(sample_weights*(W_prior.log_prob(W_2).permute(1,2,0)),dim=-1))
                                 ) + \
+                        torch.sum(matrix_mask_2*(torch.sum(sample_weights*(W_3_posterior.log_prob(W_3).permute(1,2,3,0)),dim=-1) - \
+                                 torch.sum(sample_weights*(W_prior.log_prob(W_3).permute(1,2,3,0)),dim=-1))
+                                )
+                       )  + \
           torch.sum(torch.sum(sample_weights*((mask*sigma_posterior.log_prob(sigma_y)).permute(1,2,0)),dim=(1,2)) - \
                     torch.sum(sample_weights*((mask*sigma_prior.log_prob(sigma_y)).permute(1,2,0)),dim=(1,2))
                    ) - \
@@ -163,17 +170,15 @@ for epoch in range(niters):
         print('recon loss: ' + str(recon_loss))
         sde_loss = beta_dynamics*sde_KL_loss(pred_X, t, context, dead_mask, drifts, \
                                              model.dynamics.prior_drift, pred_sigma_X, dt, mean_T, std_T, sample_weights, \
-                                             med, W*matrix_mask, W_mean*matrix_mask \
+                                             med, W_2*matrix_mask_2, W_3*matrix_mask_3 \
                                             )
         print('sde loss: ' + str(sde_loss))
         l = recon_loss + sde_loss + kl_term
         print('total loss: ' + str(l))
         # calculate gradients and update params
         l.backward()
-        print('backward done')
         nn.utils.clip_grad_norm_(model.parameters(), 1E4)
         optimizer.step()
-        print('train done')
     
     # check loss for whole training set
     if epoch % test_after == 0:
@@ -190,17 +195,22 @@ for epoch in range(niters):
                 
                 for data in validation_generator:
                     print('v data read')
-                    W_posterior = torch.distributions.laplace.Laplace(model.mean, model.logscale.exp())
+                    W_2_posterior = torch.distributions.laplace.Laplace(model.mean_2, model.logscale_2.exp())
+                    W_3_posterior = torch.distributions.laplace.Laplace(model.mean_3, model.logscale_3.exp())
                     sigma_posterior = torch.distributions.gamma.Gamma(model.logalpha.exp(), model.logbeta.exp())
                     
-                    W = W_posterior.rsample((data['Y'].shape[0],))
+                    W_2 = W_2_posterior.rsample((data['Y'].shape[0],))
+                    W_3 = W_3_posterior.rsample((data['Y'].shape[0],))
                     sigma_y = sigma_posterior.rsample((data['Y'].shape[0],data['Y'].shape[1])) + 1e-6
                     
-                    pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, W_mean = model(data, sigma_y, test=True)
+                    pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, W_mean_2, W_mean_3 = model(data, sigma_y, test=True)
                     summed_weights = torch.sum(sample_weights)
                     
-                    kl_term = torch.sum(matrix_mask*(torch.sum(sample_weights*(W_posterior.log_prob(W).permute(1,2,3,0)),dim=-1) + \
-                                        torch.sum(sample_weights*(W_prior.log_prob(W).permute(1,2,3,0)),dim=-1))
+                    kl_term = torch.sum(matrix_mask_2*(torch.sum(sample_weights*(W_2_posterior.log_prob(W_2).permute(1,2,0)),dim=-1) + \
+                                        torch.sum(sample_weights*(W_prior.log_prob(W_2).permute(1,2,0)),dim=-1))
+                                       ) + \
+                              torch.sum(matrix_mask_3*(torch.sum(sample_weights*(W_3_posterior.log_prob(W_3).permute(1,2,3,0)),dim=-1) + \
+                                        torch.sum(sample_weights*(W_prior.log_prob(W_3).permute(1,2,3,0)),dim=-1))
                                        ) + \
                               torch.sum(torch.sum(sample_weights*((mask*sigma_posterior.log_prob(sigma_y)).permute(1,2,0)),dim=(1,2)) - \
                                         torch.sum(sample_weights*((mask*sigma_prior.log_prob(sigma_y)).permute(1,2,0)),dim=(1,2))
@@ -211,7 +221,7 @@ for epoch in range(niters):
                     
                     # calculate loss
                     recon_l = loss(pred_X[:,::2], recon_mean_x0, pred_logGamma[:,::2], pred_S[:,::2], survival_mask, dead_mask, after_dead_mask, t, y, censored, mask, sigma_y[:,1:], sigma_y[:,0], sample_weights)
-                    full_l = sde_KL_loss(pred_X, t, context, dead_mask, drifts, model.dynamics.prior_drift, pred_sigma_X, dt, mean_T, std_T, sample_weights, med, W*matrix_mask, W_mean*matrix_mask)
+                    full_l = sde_KL_loss(pred_X, t, context, dead_mask, drifts, model.dynamics.prior_drift, pred_sigma_X, dt, mean_T, std_T, sample_weights, med, W_2*matrix_mask_2, W_3*matrix_mask_3)
                     
                     kl_loss += kl_term
                     total_loss += full_l + recon_l + kl_term
