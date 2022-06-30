@@ -72,7 +72,7 @@ class SDEModel(nn.Module):
 
         x_cols = (torch.ones(self.N,x.shape[0],x.shape[1],self.N)*x).permute(1,2,0,3) # every column has same values
         x_rows = x_cols.permute(0,1,3,2) # every row has same values
-        x_star = x_cols + x_rows
+        x_star = x_cols - x_rows
         
         # for i in range(self.N):
         #     Wx[:,:,i] = torch.sum(x_star*(self.w_mask*W.unsqueeze(1))[:,:,i,:,:],dim=(-1,-2))
@@ -111,7 +111,7 @@ class SDEModel(nn.Module):
         # creating matrix with pairwise addition of each health variable
         x_cols = (torch.ones(self.N,x.shape[0],self.N)*x).permute(1,0,2) # every column has same values
         x_rows = x_cols.permute(0,2,1) # every row has same values
-        x_star = x_cols + x_rows
+        x_star = x_cols - x_rows
 
         # for i in range(self.N):
         #     Wx[:,i] = torch.sum(x_star*(self.w_mask*W)[i,:,:],dim=(1,2))
