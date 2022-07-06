@@ -40,7 +40,7 @@ dir = os.path.dirname(os.path.realpath(__file__))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-num_workers = 0
+num_workers = 8
 torch.set_num_threads(12)
 test_after = 10
 test_average = 5
