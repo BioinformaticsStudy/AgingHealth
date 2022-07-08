@@ -58,9 +58,9 @@ test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = Fals
 
 with torch.no_grad():
 
-    survival_mdiin = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+    survival_mdiin = np.load(dir+'/../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
     # survival_djin = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.djin_id,args.djin_epoch,postfix))
-    linear = np.load(f'../Comparison_models/Predictions/Survival_trajectories_baseline_id{args.linear_id}_rfmice{postfix}.npy')
+    linear = np.load(f'{dir}/../Comparison_models/Predictions/Survival_trajectories_baseline_id{args.linear_id}_rfmice{postfix}.npy')
     
     start = 0
     for data in test_generator:
@@ -142,7 +142,7 @@ ax.xaxis.set_minor_locator(MultipleLocator(5))
 ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
 plt.tight_layout()
-plt.savefig('../Plots/Survival_Cindex_job_id%d_epoch%d_MDiiN%s.pdf'%(args.job_id, args.epoch,postfix))
+plt.savefig(dir+'/../Plots/Survival_Cindex_job_id%d_epoch%d_MDiiN%s.pdf'%(args.job_id, args.epoch,postfix))
 
 # with open(f'../Analysis_Data/overall_cindex_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
 #     outfile.writelines(str(overall_cindex))
