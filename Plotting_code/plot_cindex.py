@@ -11,6 +11,7 @@ file = Path(__file__). resolve()
 package_root_directory = file.parents [1]  
 sys.path.append(str(package_root_directory))  
 
+from DataLoader.dataset import Dataset
 from DataLoader.collate import custom_collate
 from Utils.cindex import cindex_td
 
@@ -26,24 +27,19 @@ cm = plt.get_cmap('Set1')
 parser = argparse.ArgumentParser('Cindex')
 parser.add_argument('--job_id', type=int)
 parser.add_argument('--epoch', type=int)
-parser.add_argument('--compare_id',type=int)
+parser.add_argument('--linear_id',type=int, default=1)
+parser.add_argument('--djin_id',type=int)
+parser.add_argument('--djin_epoch',type=int)
 parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa',help='the dataset that was used to train the model; either \'elsa\' or \'sample\'')
-parser.add_argument('--no_compare',action='store_true',help='whether or not to plot the comparison model')
-parser.add_argument('--latentN', type=int, default=None, help='the size of N if plotting the latent model; can be left None if plotting DJIN')
+
 
 args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
-
-model_name = f'latent{args.latentN}' if args.latentN is not None else 'DJIN'
-if args.latentN == None:
-    from DataLoader.dataset import Dataset
-else:
-    from Alternate_models.dataset_dim import Dataset
 dir = os.path.dirname(os.path.realpath(__file__))
 
 device = 'cpu'
 
-N = 29 if args.latentN == None else args.latentN
+N = 29
 dt = 0.5
 length = 50
 
@@ -62,9 +58,9 @@ test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = Fals
 
 with torch.no_grad():
 
-    survival = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_%s%s.npy'%(args.job_id,args.epoch,model_name,postfix))
-    if not args.no_compare:
-        linear = np.load(f'../Comparison_models/Predictions/Survival_trajectories_baseline_id{args.compare_id}_rfmice{postfix}.npy')
+    survival_mdiin = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+    # survival_djin = np.load('../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.djin_id,args.djin_epoch,postfix))
+    linear = np.load(f'../Comparison_models/Predictions/Survival_trajectories_baseline_id{args.linear_id}_rfmice{postfix}.npy')
     
     start = 0
     for data in test_generator:
@@ -82,44 +78,54 @@ with torch.no_grad():
 
 age_bins = np.arange(40, 105, 3)
 bin_centers = age_bins[1:] - np.diff(age_bins)
-c_index_list = np.ones(bin_centers.shape)*np.nan
 
+#mdiin calculations
+c_index_list_mdiin = np.ones(bin_centers.shape)*np.nan
 for j in range(len(age_bins)-1):
-
     selected = []
     for i in range(death_ages.shape[0]):
         if age_bins[j] <= ages[i] and ages[i] < age_bins[j+1]:
             selected.append(i)
-    c_index = cindex_td(death_ages[selected], survival[selected,:,1], survival[selected,:,0], 1 - censored[selected], weights = sample_weight)
-    c_index_list[j] = c_index
+    c_index = cindex_td(death_ages[selected], survival_mdiin[selected,:,1], survival_mdiin[selected,:,0], 1 - censored[selected], weights = sample_weight)
+    c_index_list_mdiin[j] = c_index
 
-if not args.no_compare:
-    c_index_linear = np.ones(bin_centers.shape)*np.nan
+# djin calculations
+# c_index_list_djin = np.ones(bin_centers.shape)*np.nan
+# for j in range(len(age_bins)-1):
+#     selected = []
+#     for i in range(death_ages.shape[0]):
+#         if age_bins[j] <= ages[i] and ages[i] < age_bins[j+1]:
+#             selected.append(i)
+#     c_index = cindex_td(death_ages[selected], survival_djin[selected,:,1], survival_djin[selected,:,0], 1 - censored[selected], weights = sample_weight)
+#     c_index_list_djin[j] = c_index
 
-    for j in range(len(age_bins)-1):
-
-        selected = []
-        for i in range(death_ages.shape[0]):
-            if age_bins[j] <= ages[i] and ages[i] < age_bins[j+1]:
-                selected.append(i)
-        
-        c_index = cindex_td(death_ages[selected], linear[selected,:,1], linear[selected,:,0], 1 - censored[selected], weights = sample_weight)
-        c_index_linear[j] = c_index
+#elastic net calculations
+c_index_linear = np.ones(bin_centers.shape)*np.nan
+for j in range(len(age_bins)-1):
+    selected = []
+    for i in range(death_ages.shape[0]):
+        if age_bins[j] <= ages[i] and ages[i] < age_bins[j+1]:
+            selected.append(i)
+    c_index = cindex_td(death_ages[selected], linear[selected,:,1], linear[selected,:,0], 1 - censored[selected], weights = sample_weight)
+    c_index_linear[j] = c_index
 
 
 #### Plot C index
 fig,ax = plt.subplots(figsize=(4.5,4.5))
-    
-overall_cindex = cindex_td(death_ages, survival[:,:,1], survival[:,:,0], 1 - censored)
-plt.plot(bin_centers, c_index_list, marker = 'o',color=cm(0), markersize=8, linestyle = '', label = f'{model_name} model')
-plt.plot(bin_centers, overall_cindex*np.ones(bin_centers.shape), color = cm(0), linewidth = 2.5, label = '')
 
-if not args.no_compare:
-    overall_cindex_linear = cindex_td(death_ages, linear[:,:,1], survival[:,:,0], 1 - censored)
-    plt.plot(bin_centers, c_index_linear, marker = 's',color=cm(2), markersize=7, linestyle = '', label = 'Elastic-net Cox model')
-    plt.plot(bin_centers, overall_cindex_linear*np.ones(bin_centers.shape), color = cm(2), linewidth = 2.5, label = '', linestyle = '--')
+# overall_cindex_djin = cindex_td(death_ages, survival_djin[:,:,1], survival_djin[:,:,0], 1 - censored)
+# plt.plot(bin_centers, c_index_list_djin, marker = 'o',color=cm(0), markersize=8, linestyle = '', label = f'DJIN model')
+# plt.plot(bin_centers, overall_cindex_djin*np.ones(bin_centers.shape), color = cm(0), linewidth = 2.5, label = '')
 
-print(cindex_td(death_ages, survival[:,:,1], survival[:,:,0], 1 - censored))
+overall_cindex_linear = cindex_td(death_ages, linear[:,:,1], survival_mdiin[:,:,0], 1 - censored)
+plt.plot(bin_centers, c_index_linear, marker = 's',color=cm(2), markersize=7, linestyle = '', label = 'Elastic-net Cox')
+plt.plot(bin_centers, overall_cindex_linear*np.ones(bin_centers.shape), color = cm(2), linewidth = 2.5, label = '', linestyle = '--')
+
+overall_cindex_mdiin = cindex_td(death_ages, survival_mdiin[:,:,1], survival_mdiin[:,:,0], 1 - censored)
+plt.plot(bin_centers, c_index_list_mdiin, marker = 'o',color=cm(4), markersize=8, linestyle = '', label = f'MDiiN model')
+plt.plot(bin_centers, overall_cindex_mdiin*np.ones(bin_centers.shape), color = cm(4), linewidth = 2.5, label = '')
+
+print(overall_cindex_mdiin)
 
 plt.ylabel('Survival C-index', fontsize = 14)
 plt.xlabel('Baseline age (years)', fontsize = 14)
@@ -136,9 +142,9 @@ ax.xaxis.set_minor_locator(MultipleLocator(5))
 ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
 plt.tight_layout()
-plt.savefig('../Plots/Survival_Cindex_job_id%d_epoch%d_%s%s.pdf'%(args.job_id, args.epoch,model_name,postfix))
+plt.savefig('../Plots/Survival_Cindex_job_id%d_epoch%d_MDiiN%s.pdf'%(args.job_id, args.epoch,postfix))
 
-with open(f'../Analysis_Data/overall_cindex_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
-    outfile.writelines(str(overall_cindex))
-    if not args.no_compare:
-        outfile.writelines(',' + str(overall_cindex_linear))
+# with open(f'../Analysis_Data/overall_cindex_job_id{args.job_id}_epoch{args.epoch}{postfix}.txt','w') as outfile:
+#     outfile.writelines(str(overall_cindex))
+#     if not args.no_compare:
+#         outfile.writelines(',' + str(overall_cindex_linear))

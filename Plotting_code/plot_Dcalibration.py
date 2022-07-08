@@ -26,7 +26,10 @@ parser = argparse.ArgumentParser('Dcalibration')
 parser.add_argument('--job_id', type=int)
 parser.add_argument('--epoch', type=int)
 parser.add_argument('--dataset',type=str,choices=['elsa','sample'],default='elsa',help='the dataset that was used to train the model; either \'elsa\' or \'sample\'')
-parser.add_argument('--no_compare',action='store_true',help='whether or not to plot the comparison model')
+parser.add_argument('--linear_id',type=int,default=1)
+parser.add_argument('--djin_id',type=int)
+parser.add_argument('--djin_epoch',type=int)
+
 args = parser.parse_args()
 postfix = '_sample' if args.dataset == 'sample' else ''
 
@@ -53,9 +56,9 @@ test_generator = data.DataLoader(test_set, batch_size = num_test, shuffle = Fals
 
 with torch.no_grad():
 
-    survival = np.load(dir+'/../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
-    if not args.no_compare:
-        linear=np.load(f'{dir}/../Comparison_models/Predictions/Survival_trajectories_baseline_id1_rfmice{postfix}.npy')
+    survival_mdiin = np.load(dir+'/../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.job_id,args.epoch,postfix))
+    # survival_djin = np.load(dir+'/../Analysis_Data/Survival_trajectories_job_id%d_epoch%d_DJIN%s.npy'%(args.djin_id,args.djin_epoch,postfix))
+    linear=np.load(f'{dir}/../Comparison_models/Predictions/Survival_trajectories_baseline_id1_rfmice{postfix}.npy')
 
     start = 0
     for data in test_generator:
@@ -74,175 +77,90 @@ with torch.no_grad():
 
 dead_mask = np.concatenate((dead_mask, np.zeros((dead_mask.shape[0], dead_mask.shape[1]*3))), axis = 1)
 
-uncensored_list = survival[censored<1,:,1][(dead_mask[censored<1]*survival[censored<1,:,1])>0].flatten()
-
-bin_edges = np.linspace(0,1,11)
-uncen_buckets = np.zeros(10)
-cen_buckets = np.zeros(10)
-
-# uncensored
-uncen_buckets += np.histogram(uncensored_list, bins=bin_edges)[0]
-
-for i in range(len(ages)):
-    
-    if censored[i] == 1:
-
-        survival[i,:,1][survival[i,:,1] < 1e-10] = 1e-10
-        survival[i,:,1][survival[i,:,1] > 1 ] = 1
-        
-        Sc = survival[i,:,1][(dead_mask[i]*survival[i,:,1]) > 0][0]
-        
-        bin = (np.digitize(Sc, bin_edges, right=True) - 1)
-        
-        cen_buckets[bin] += (1 - bin_edges[bin]/Sc)
-        
-        total = 0
-        for j in range(bin-1, -1, -1):
-            cen_buckets[j] += 0.1/Sc
-            total += 0.1/Sc
-        
-        
-            
-
-buckets = cen_buckets + uncen_buckets
-
-uncen_buckets /= buckets.sum()
-cen_buckets /= buckets.sum()
-
-error_buckets = np.sqrt(buckets)/buckets.sum()
-
-statistic = 10./len(ages) * np.sum( (buckets - len(ages)/10.)**2 )
-
-pval = 1 - chi2.cdf(statistic, 9)
-
-
-####linear baseline
-if not args.no_compare:
-    linear_uncensored_list = linear[censored<1,:,1][(dead_mask[censored<1]*linear[censored<1,:,1])>0].flatten()
-
+def calculate_DCal(survival):
+    uncensored_list = survival[censored<1,:,1][(dead_mask[censored<1]*survival[censored<1,:,1])>0].flatten()
     bin_edges = np.linspace(0,1,11)
-    linear_uncen_buckets = np.zeros(10)
-    linear_cen_buckets = np.zeros(10)
+    uncen_buckets = np.zeros(10)
+    cen_buckets = np.zeros(10)
 
-    # uncensored
-    linear_uncen_buckets += np.histogram(linear_uncensored_list, bins=bin_edges)[0]
-
-
+    uncen_buckets += np.histogram(uncensored_list, bins=bin_edges)[0]
     for i in range(len(ages)):
-        
         if censored[i] == 1:
-
-            linear[i,:,1][linear[i,:,1] < 1e-10] = 1e-10
-            linear[i,:,1][linear[i,:,1] > 1 ] = 1
+            survival[i,:,1][survival[i,:,1] < 1e-10] = 1e-10
+            survival[i,:,1][survival[i,:,1] > 1 ] = 1
             
-            Sc = linear[i,:,1][(dead_mask[i]*linear[i,:,1]) > 0][0]
+            Sc = survival[i,:,1][(dead_mask[i]*survival[i,:,1]) > 0][0]
             
             bin = (np.digitize(Sc, bin_edges, right=True) - 1)
             
-            linear_cen_buckets[bin] += 1 - bin_edges[bin]/Sc
+            cen_buckets[bin] += (1 - bin_edges[bin]/Sc)
             
-            total = 0
             for j in range(bin-1, -1, -1):
-                linear_cen_buckets[j] += 0.1/Sc
-                total += 0.1/Sc
+                cen_buckets[j] += 0.1/Sc
+            
+    buckets = cen_buckets + uncen_buckets
+    uncen_buckets /= buckets.sum()
+    cen_buckets /= buckets.sum()
+    error_buckets = np.sqrt(buckets)/buckets.sum()
 
-    linear_buckets = linear_cen_buckets + linear_uncen_buckets
+    statistic = 10./len(ages) * np.sum( (buckets - len(ages)/10.)**2 )
+    pval = 1 - chi2.cdf(statistic, 9)
 
-    linear_uncen_buckets /= linear_buckets.sum()
-    linear_cen_buckets /= linear_buckets.sum()
+    return uncen_buckets, cen_buckets, error_buckets, statistic, pval
 
-    linear_statistic = 10./len(ages) * np.sum( (linear_buckets - len(ages)/10.)**2 )
+uncen_buckets_mdiin,cen_buckets_mdiin, \
+error_buckets_mdiin, statistic_mdiin, pval_mdiin = calculate_DCal(survival_mdiin)
 
-    linear_pval = 1 - chi2.cdf(linear_statistic, 9)
+# uncen_buckets_djin,cen_buckets_djin, \
+# error_buckets_djin, statistic_djin, pval_djin = calculate_DCal(survival_djin)
 
-
-    print('Elastic net chi-sq %.2f, p-val %.5f'%(linear_statistic, linear_pval))
-    print('DJIN chi-sq %.2f, p-val %.5f'%(statistic, pval))
-
-
-
-
-
-# DJIN model
-fig, ax = plt.subplots(figsize=(4.5,4.5))
+linear_uncen_buckets,linear_cen_buckets, \
+linear_error_buckets, linear_statistic, linear_pval = calculate_DCal(linear)
 
 
-bin_labels = ['[0.,.1)', '[.1,.2)', '[.2,.3)', '[.3,.4)',
-                  '[.4,.5)', '[.5,.6)', '[.6,.7)', '[.7,.8)', '[.8,.9)',
-                  '[.9,1.]']
-bin_index = np.arange(0,len(bin_labels))
-
-plt.barh(bin_labels,  uncen_buckets + cen_buckets, height=0.98, color = cm(0), label = 'DJIN')
-
-plt.errorbar(uncen_buckets + cen_buckets, bin_index, xerr=error_buckets, color = 'k', zorder=10000000, linestyle = '')
-
-ax.text(.7, 0.77, r'DJIN model', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 12, zorder=1000000)
-ax.text(.7, 0.71, r'$\chi^2 = {{%.1f}}$'%(statistic), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
-ax.text(.7, 0.65, r'$p={{%.1f}}$'%(pval), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
-
-ax.text(.71, 0.55, r'E-net Cox', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 12, zorder=1000000)
-if not args.no_compare:
-    ax.text(.71, 0.49, r'$\chi^2 = {{%.1f}}$'%(linear_statistic), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
-    ax.text(.71, 0.43, r'$p={{%.1f}}$'%(linear_pval), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
+def plot_DCal(model_name,uncen_buckets,cen_buckets,error_buckets,color):
+    fig, ax = plt.subplots(figsize=(4.5,4.5))
 
 
-ax.text(-0.05, 1.05, 'c', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 16, zorder=1000000,
-        fontweight='bold')
+    bin_labels = ['[0.,.1)', '[.1,.2)', '[.2,.3)', '[.3,.4)',
+                      '[.4,.5)', '[.5,.6)', '[.6,.7)', '[.7,.8)', '[.8,.9)',
+                      '[.9,1.]']
+    bin_index = np.arange(0,len(bin_labels))
+
+    plt.barh(bin_labels,  uncen_buckets + cen_buckets, height=0.98, color = cm(color), label = 'MDiiN')
+    plt.errorbar(uncen_buckets + cen_buckets, bin_index, xerr=error_buckets, color = 'k', zorder=10000000, linestyle = '')
+
+    ax.text(.7, 0.77, r'MDiiN model', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 12, zorder=1000000)
+    ax.text(.7, 0.71, r'$\chi^2 = {{%.1f}}$'%(statistic_mdiin), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
+    ax.text(.7, 0.65, r'$p={{%.1f}}$'%(pval_mdiin), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
+
+    # ax.text(.7, 0.55, r'DJIN model', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 12, zorder=1000000)
+    # ax.text(.7, 0.49, r'$\chi^2 = {{%.1f}}$'%(statistic_djin), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
+    # ax.text(.7, 0.43, r'$p={{%.1f}}$'%(pval_djin), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
+
+    ax.text(.71, 0.33, r'E-net Cox', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 12, zorder=1000000)
+    ax.text(.71, 0.27, r'$\chi^2 = {{%.1f}}$'%(linear_statistic), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
+    ax.text(.71, 0.21, r'$p={{%.1f}}$'%(linear_pval), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
 
 
-plt.plot(2*[0.1], [-0.5,9.5], linestyle = '--', color = 'k', zorder=100, linewidth = 2, label='Uniform')
-
-plt.legend(handlelength=0.75, handletextpad=0.6)
-
-
-plt.xlim(0, 0.15)
-plt.ylim(-0.5,9.5)
-plt.ylabel('Survival probability', fontsize=14)
-plt.xlabel('Fraction in bin', fontsize=14)
-ax.tick_params(labelsize=11)
-plt.tight_layout()
-plt.savefig(dir+'/../Plots/D-Calibration_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+    ax.text(-0.05, 1.05, 'c', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 16, zorder=1000000,
+            fontweight='bold')
 
 
+    plt.plot(2*[0.1], [-0.5,9.5], linestyle = '--', color = 'k', zorder=100, linewidth = 2, label='Uniform')
+
+    plt.legend(handlelength=0.75, handletextpad=0.6)
 
 
-# Elastic net Cox
-fig, ax = plt.subplots(figsize=(4.5,4.5))
+    plt.xlim(0, 0.15)
+    plt.ylim(-0.5,9.5)
+    plt.ylabel('Survival probability', fontsize=14)
+    plt.xlabel('Fraction in bin', fontsize=14)
+    ax.tick_params(labelsize=11)
+    plt.tight_layout()
+    plt.savefig(dir+'/../Plots/D-Calibration_job_id%d_epoch%d%s%s.pdf'%(args.job_id, args.epoch,model_name,postfix))
 
 
-bin_labels = ['[0.,.1)', '[.1,.2)', '[.2,.3)', '[.3,.4)',
-                  '[.4,.5)', '[.5,.6)', '[.6,.7)', '[.7,.8)', '[.8,.9)',
-                  '[.9,1.]']
-bin_index = np.arange(0,len(bin_labels))
-
-if not args.no_compare:
-    plt.barh(bin_labels,  linear_uncen_buckets + linear_cen_buckets, height=0.98, color = cm(2), label = 'Enet Cox')
-    plt.errorbar(linear_uncen_buckets + linear_cen_buckets, bin_index, xerr=error_buckets, color = 'k', zorder=10000000, linestyle = '')
-
-
-ax.text(.7, 0.77, r'DJIN model', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 12, zorder=1000000)
-ax.text(.7, 0.71, r'$\chi^2 = {{%.1f}}$'%(statistic), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
-ax.text(.7, 0.65, r'$p={{%.1f}}$'%(pval), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
-
-ax.text(.71, 0.55, r'E-net Cox', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 12, zorder=1000000)
-if not args.no_compare:
-    ax.text(.71, 0.49, r'$\chi^2 = {{%.1f}}$'%(linear_statistic), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
-    ax.text(.71, 0.43, r'$p={{%.1f}}$'%(linear_pval), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 14, zorder=1000000)
-
-
-ax.text(-0.05, 1.05, 'b', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes, color='k',fontsize = 16, zorder=1000000,
-        fontweight='bold')
-
-plt.plot(2*[0.1], [-0.5,9.5], linestyle = '--', color = 'k', zorder=100, linewidth = 2, label='Uniform')
-
-
-plt.legend(handlelength=0.75, handletextpad=0.6)
-
-
-plt.xlim(0, 0.175)
-plt.ylim(-0.5,9.5)
-plt.ylabel('Survival probability', fontsize=14)
-plt.xlabel('Fraction in bin', fontsize=14)
-ax.tick_params(labelsize=11)
-plt.tight_layout()
-plt.savefig(dir+'/../Plots/D-Calibration_cox.pdf')
+plot_DCal('MDiiN',uncen_buckets_mdiin,cen_buckets_mdiin,error_buckets_mdiin,4)
+# plot_DCal('DJIN',uncen_buckets_djin,cen_buckets_djin,error_buckets_djin,0)
+plot_DCal('Cox',linear_uncen_buckets,linear_cen_buckets,linear_error_buckets,2)

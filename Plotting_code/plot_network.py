@@ -45,52 +45,58 @@ N = 29
 model = Model('cpu', N, args.gamma_size, args.z_size, args.decoder_size, args.Nflows, args.flow_hidden, args.f_nn_size, 0, 0, 0.5)
 model.load_state_dict(torch.load(dir+'/../Parameters/train%d_Model_DJIN_epoch%d%s.params'%(args.job_id, args.epoch,postfix),map_location='cpu'))
 
-mean = model.mean.detach().numpy()*(np.ones((N,N)) - np.eye(N))
-scale = model.logscale.exp().detach().numpy()*(np.ones((N,N)) - np.eye(N))
-
-
-mean_list = mean[~np.eye(mean.shape[0],dtype=bool)]
-scale_list = scale[~np.eye(scale.shape[0],dtype=bool)]
-robust_network = np.ones(mean.shape)
-network = np.ones(mean.shape)*mean
+matrix_mask = np.ones((N,N,N))
 for i in range(N):
-    for j in range(N):
+    matrix_mask[i,:,:] *= (~np.eye(N,dtype=bool))
+    matrix_mask[:,i,:] *= (~np.eye(N,dtype=bool))
+    matrix_mask[:,:,i] *= (~np.eye(N,dtype=bool))
 
-        if i!=j:
-            posterior = laplace(mean[i,j], scale[i,j])
-            interval = posterior.interval(0.99)
-            if (interval[0] < 0 and interval[1] > 0):
-                robust_network[i,j] = 0
-
-robust_list = robust_network[~np.eye(robust_network.shape[0],dtype=bool)]
-
-fig,ax = plt.subplots(figsize=(6,4))
+mean = model.mean.detach().numpy()*matrix_mask
+scale = model.logscale.exp().detach().numpy()*matrix_mask
 
 
-pd = np.zeros(mean_list.shape)
-for i, (m, s) in enumerate(zip(mean_list, scale_list)):
-    if m > 0:
-        dist = posterior = laplace(m, s)
-        pd[i] = posterior.sf(0)
-    else:
-        dist = posterior = laplace(m, s)
-        pd[i] = posterior.cdf(0)
+# mean_list = mean[matrix_mask]
+# scale_list = scale[matrix_mask]
+# robust_network = np.ones(mean.shape)
+# network = np.ones(mean.shape)*mean
+# for i in range(N):
+#     for j in range(N):
+#         for k in range(N):
+#             if len({i,j,k} == 3):
+#                 posterior = laplace(mean[i,j,k], scale[i,j,k])
+#                 interval = posterior.interval(0.99)
+#                 if (interval[0] < 0 and interval[1] > 0):
+#                     robust_network[i,j] = 0
 
-size = 10 + 10*robust_list
-color = ['grey' if r==0 else 'black' for r in robust_list]
+# robust_list = robust_network[~np.eye(robust_network.shape[0],dtype=bool)]
 
-cax = ax.scatter(pd, mean_list,
-                     c = color, s=size, edgecolors='white', linewidths=0.05)
-plt.plot([0.995,0.995], [np.min(mean_list), np.max(mean_list)],color='r', linestyle = '--')
+# fig,ax = plt.subplots(figsize=(6,4))
 
-ax.set_ylabel(r'Posterior mean weight', fontsize = 14)
-ax.set_xlabel(r'Proportion of posterior in direction of mean', fontsize = 14)
 
-ax.spines['right'].set_visible(False)
-ax.spines['top'].set_visible(False)
+# pd = np.zeros(mean_list.shape)
+# for i, (m, s) in enumerate(zip(mean_list, scale_list)):
+#     if m > 0:
+#         dist = posterior = laplace(m, s)
+#         pd[i] = posterior.sf(0)
+#     else:
+#         dist = posterior = laplace(m, s)
+#         pd[i] = posterior.cdf(0)
 
-plt.tight_layout()
-plt.savefig(dir+'/../Plots/Posterior_network_uncertainty_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
+# size = 10 + 10*robust_list
+# color = ['grey' if r==0 else 'black' for r in robust_list]
+
+# cax = ax.scatter(pd, mean_list,
+#                      c = color, s=size, edgecolors='white', linewidths=0.05)
+# plt.plot([0.995,0.995], [np.min(mean_list), np.max(mean_list)],color='r', linestyle = '--')
+
+# ax.set_ylabel(r'Posterior mean weight', fontsize = 14)
+# ax.set_xlabel(r'Proportion of posterior in direction of mean', fontsize = 14)
+
+# ax.spines['right'].set_visible(False)
+# ax.spines['top'].set_visible(False)
+
+# plt.tight_layout()
+# plt.savefig(dir+'/../Plots/Posterior_network_uncertainty_job_id%d_epoch%d%s.pdf'%(args.job_id, args.epoch,postfix))
 
 
 
@@ -104,20 +110,21 @@ sns.set(style="white")
 
 cmap = sns.color_palette("RdBu_r", 100)
 
-network = np.ones(mean.shape)*mean
-network_scale = np.ones(mean.shape)*scale
+network = np.mean(np.ones(mean.shape)*mean,axis=-1)
+network_scale = np.mean(np.ones(mean.shape)*scale,axis=-1)
+# print(np.sum(network[2]))
 
 order = np.array([28, 8, 9, 10, 11, 3, 4, 7, 6, 5, 0, 2, 1, 16, 27, 19, 21, 26, 23, 24, 18, 17, 15, 13, 12, 14, 22, 20, 25])
 
-for i in range(N):
-    for j in range(N):
-
-        if i!=j:
-            posterior = laplace(mean[i,j], scale[i,j])
-            interval = posterior.interval(0.99)
-            if (interval[0] < 0 and interval[1] > 0) or np.abs(network[i,j]) < 0.0001:
-                network[i,j] = np.nan
-                network_scale[i,j] = np.nan
+# for i in range(N):
+#     for j in range(N):
+#         for k in range(N):
+#             if len({i,j,k}) == 3:
+#                 posterior = laplace(mean[i,j,k], scale[i,j,k])
+#                 interval = posterior.interval(0.99)
+#                 if (interval[0] < 0 and interval[1] > 0): #or np.abs(network[i,j]) < 0.0001:
+#                     network[i,j] = np.nan
+#                     network_scale[i,j] = np.nan
 
 np.save(dir+'/../Analysis_Data/network_weights_job_id%d_epoch%d.npy'%(args.job_id, args.epoch), network)
                 

@@ -229,8 +229,8 @@ for yi, years in enumerate([0, 2, 4, 6, 8, 10, 12, 14]):
     
     if years > 0:
         
-        parts_nn = ax.boxplot(x=[RMSE[yi][non_nurse][~np.isnan(RMSE[yi][non_nurse])]],positions=[years-0.2],showmeans=False,widths=0.27,showfliers=False,patch_artist=True,boxprops=dict(facecolor=cm2(2), alpha=0.6,color='k'), medianprops=dict(color=cm(0),zorder=100000,linewidth=2)) #plot 2yr data
-        parts_n = ax.boxplot(x=[RMSE[yi][nurse][~np.isnan(RMSE[yi][nurse])]],positions=[years+0.2],showmeans=False,widths=0.27,showfliers=False,patch_artist=True,boxprops=dict(facecolor=cm2(3), alpha=0.6,color='k'), medianprops=dict(color=cm(0),zorder=100000,linewidth=2)) #plot nurse data
+        parts_nn = ax.boxplot(x=[RMSE[yi][non_nurse][~np.isnan(RMSE[yi][non_nurse])]],positions=[years-0.2],showmeans=False,widths=0.27,showfliers=False,patch_artist=True,boxprops=dict(facecolor=cm2(2), alpha=0.6,color='k'), medianprops=dict(color=cm(4),zorder=100000,linewidth=2)) #plot 2yr data
+        parts_n = ax.boxplot(x=[RMSE[yi][nurse][~np.isnan(RMSE[yi][nurse])]],positions=[years+0.2],showmeans=False,widths=0.27,showfliers=False,patch_artist=True,boxprops=dict(facecolor=cm2(3), alpha=0.6,color='k'), medianprops=dict(color=cm(4),zorder=100000,linewidth=2)) #plot nurse data
         
 
         
@@ -246,19 +246,19 @@ for yi, years in enumerate([0, 2, 4, 6, 8, 10, 12, 14]):
             if yi == 1: #baseline
                 
 
-                ax.plot([years-0.2]*2, [mean_nn]*2, color = cm(0), marker='o', linestyle = '', label = '', zorder=100000)
-                cnm = ax.plot([years+0.2]*2, [mean_n]*2, color = cm(0), marker='o', linestyle = '', label = 'Network model median', zorder=100000)
+                ax.plot([years-0.2]*2, [mean_nn]*2, color = cm(4), marker='o', linestyle = '', label = '', zorder=100000)
+                cnm = ax.plot([years+0.2]*2, [mean_n]*2, color = cm(4), marker='o', linestyle = '', label = 'Network model median', zorder=100000)
                 
                 if not args.no_compare:
                     ax.plot([years-0.2]*2, [mean_linear_nn]*2, color = cm(2), marker='s', linestyle = '', label = '', zorder=10)
-                    enm = ax.plot([years+0.2]*2, [mean_linear_n]*2, color = cm(2), marker='o', linestyle = '', label = 'Elastic net linear median', zorder=10) #legend
+                    enm = ax.plot([years+0.2]*2, [mean_linear_n]*2, color = cm(2), marker='s', linestyle = '', label = 'Elastic net linear median', zorder=10) #legend
             else:
                 if not args.no_compare:
                     ax.plot([years-0.2]*2, [mean_linear_nn]*2, color = cm(2), marker='s', linestyle = '', zorder=10) #[3,4],[5,6][7,8]
                     ax.plot([years+0.2]*2, [mean_linear_n]*2, color = cm(2), marker='s', linestyle = '', zorder=10)
                 
-                ax.plot([years-0.2]*2, [mean_nn]*2, color = cm(0), marker='o', linestyle = '', label = '', zorder=100000)
-                ax.plot([years+0.2]*2, [mean_n]*2, color = cm(0), marker='o', linestyle = '', label = '', zorder=100000)
+                ax.plot([years-0.2]*2, [mean_nn]*2, color = cm(4), marker='o', linestyle = '', label = '', zorder=100000)
+                ax.plot([years+0.2]*2, [mean_n]*2, color = cm(4), marker='o', linestyle = '', label = '', zorder=100000)
 
 
 ax.set_ylabel(r'Relative RMSE',fontsize = 14)
@@ -268,11 +268,11 @@ ax.set_ylim(0.6, 1.2)
 ax.set_xticks([2,4,6,8,10,12, 14])
 ax.set_xticklabels(['[1,2]','[3,4]','[5,6]','[7,8]','[9,10]','[11,12]', '[13,14]'])
 
-pop_m = ax.plot([0,16], [1,1], linestyle = '--', color = 'k', label = 'Population')
+pop_m = ax.plot([0,16], [1,1], linestyle = '--', color = 'k', label = 'Population mean')
 
 if not args.no_compare:
     ax.legend([parts_nn["boxes"][0], parts_n["boxes"][0], cnm[0], enm[0], pop_m[0]],
-                            ['2 year Self report waves', '4 year Nurse evaluation waves', 'DJIN model median', 'Elastic-net linear median', 'Population'], loc='upper left')
+                            ['2 year Self report waves', '4 year Nurse evaluation waves', 'MDiiN model median', 'Elastic-net linear median', 'Population mean'], loc='upper left')
 ax.set_xlim(1, 15)
 
 ax.yaxis.set_minor_locator(MultipleLocator(0.025))
