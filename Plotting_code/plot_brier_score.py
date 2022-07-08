@@ -306,9 +306,10 @@ BS_linear_t = (BS_linear/BS_linear_count)
 
 fig,ax = plt.subplots(figsize=(4.5,4.5))
 
+
 plt.plot(bin_centers[bin_centers>=60], BS_t_mdiin[bin_centers>=60], color = cm(4), label = 'MDiiN model', linewidth = 2.5)
 # plt.plot(bin_centers[bin_centers>=60], BS_t_djin[bin_centers>=60], color = cm(0), label = 'DJIN model', linewidth = 2.5)
-plt.plot(bin_centers[bin_centers>=60], BS_linear_t[bin_centers>=60], color = cm(2), label = 'Elastic net Cox', linewidth = 2.5, linestyle = '--')
+plt.plot(bin_centers[bin_centers>=60], BS_linear_t[bin_centers>=60], color = cm(2), label = 'Elastic-net Cox', linewidth = 2.5, linestyle = '--')
 
 
 min_death_age = death_ages[censored==0].min()
