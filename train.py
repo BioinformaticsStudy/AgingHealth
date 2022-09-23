@@ -50,11 +50,11 @@ params_folder = dir+'/Parameters/'
 output_folder = dir+'/Output/'
 
 # setting up file for loss outputs
-loss_file = '%svalidation%d.loss'%(output_folder, args.job_id)
-open(loss_file, 'w')
+#loss_file = '%svalidation%d.loss'%(output_folder, args.job_id)
+#open(loss_file, 'w')
 
 # output hyperparameters
-hyperparameters_file = '%strain%d.hyperparams'%(output_folder, args.job_id)
+"""hyperparameters_file = '%strain%d.hyperparams'%(output_folder, args.job_id)
 with open(hyperparameters_file, 'w') as hf:
     hf.writelines('batch_size, %d\n'%args.batch_size)
     hf.writelines('niters, %d\n'%args.niters)
@@ -67,6 +67,7 @@ with open(hyperparameters_file, 'w') as hf:
     hf.writelines('flow_hidden, %d\n'%args.flow_hidden)
     hf.writelines('f_nn_size, %d\n'%args.f_nn_size)
     hf.writelines('W_prior_scale, %.4f\n'%args.W_prior_scale)
+"""
 
 N = 29
 batch_size = args.batch_size
