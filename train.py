@@ -50,8 +50,8 @@ params_folder = dir+'/Parameters/'
 output_folder = dir+'/Output/'
 
 # setting up file for loss outputs
-#loss_file = '%svalidation%d.loss'%(output_folder, args.job_id)
-#open(loss_file, 'w')
+loss_file = '%svalidation%d.loss'%(output_folder, args.job_id)
+open(loss_file, 'w')
 
 # output hyperparameters
 """hyperparameters_file = '%strain%d.hyperparams'%(output_folder, args.job_id)
