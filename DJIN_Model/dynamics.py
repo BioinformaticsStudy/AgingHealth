@@ -45,7 +45,7 @@ class SDEModel(nn.Module):
         # posterior drift nn
         self.g = nn.Sequential(
             nn.Linear(N + 1 + context_size, 8),
-            nn.ELU()
+            nn.ELU(),
             nn.Linear(8, N, bias=False)
         )
 
@@ -96,7 +96,7 @@ class SDEModel(nn.Module):
 
         z_RNN = torch.cat(((t.unsqueeze(-1) - self.mean_T)/self.std_T, context), dim=-1)
         x_ = x.clone()
-        log_Gamma, h = self.log_Gamme(torch.cat((x, (t.unsqueeze(-1) - self.mean_T)/self.std_T), dim=-1, h)
+        log_Gamma, h = self.log_Gamme(torch.cat((x, (t.unsqueeze(-1) - self.mean_T)/self.std_T), dim=-1), h)
 
         x_cols = (torch.ones(self.N,x.shape[0],self.N)*x).permute(1,0,2)
         x_rows = (torch.ones(self.N,x.shape[0],self.N)/x).permute(1,0,2)
@@ -107,7 +107,7 @@ class SDEModel(nn.Module):
         dx = Wx + self.f(x,z_RNN) + self.g(torch.cat((x,z_RNN),dim=-1))
         log_dS = -torch.exp(log_Gamma).reshape(x.shape[0])
 
-        return dx, log_dS, log_Gamme, h, self.sigma_x(x_)
+        return dx, log_dS, log_Gamma, h, self.sigma_x(x_)
 
     # output one step of prior SDE and survival model
     def prior_sim(self, x, h, t, context, W):
@@ -117,6 +117,6 @@ class SDEModel(nn.Module):
 
         log_Gamma, h = self.log_Gamma(torch.cat((x, (t.unsqueeze(-1) - self.mean_T)/self.std_T),dim=-1), h)
         dx = torch.matmul(x.unsqueeze(1), self.w_mask*W).squeeze(1) + self.f(x_, z_RNN)
-        log_dS = -torch.exp(log_Gamme).reshape(x.shape[0])
+        log_dS = -torch.exp(log_Gamma).reshape(x.shape[0])
 
         return dx, log_dS, log_Gamma, h, self.sigma_x(x_)
