@@ -96,7 +96,7 @@ class SDEModel(nn.Module):
 
         z_RNN = torch.cat(((t.unsqueeze(-1) - self.mean_T)/self.std_T, context), dim=-1)
         x_ = x.clone()
-        log_Gamma, h = self.log_Gamme(torch.cat((x, (t.unsqueeze(-1) - self.mean_T)/self.std_T), dim=-1), h)
+        log_Gamma, h = self.log_Gamma(torch.cat((x, (t.unsqueeze(-1) - self.mean_T)/self.std_T), dim=-1), h)
 
         x_cols = (torch.ones(self.N,x.shape[0],self.N)*x).permute(1,0,2)
         x_rows = (torch.ones(self.N,x.shape[0],self.N)/x).permute(1,0,2)
