@@ -14,7 +14,7 @@ class SDEModel(nn.Module):
         self.N = N
         self.mean_T = mean_T
         self.std_T = std_T
-        self.device - device
+        self.device = device
         # self.w_mask = (torch.ones(N,N) - torch.eye(N)).to(device) # mask for off-diagonal weights in network
         self.w_mask = torch.ones(N,N,N)
         for i in range(N):
