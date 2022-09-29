@@ -71,11 +71,12 @@ class SDEModel(nn.Module):
         #     Wx[:,:,i] = torch.sum(torch.matmul(x,(self.w_mask*W)[:,i:,:]), axis=-1)
 
         x_cols = (torch.ones(self.N,x.shape[0],x.shape[1],self.N)*x).permute(1,2,0,3) # every column has same values
-        print('cols' + str(x_cols))
+        print('cols shape:' + str(x_cols.shape))
         x_rows = (torch.ones(self.N,x.shape[0],x.shape[1],self.N)/x).permute(1,2,0,3)
         x_rows = x_rows.permute(0,1,3,2)
+        print('rows shape:' + str(x_rows.shape))
         x_star = torch.matmul(x_cols, x_rows)
-        print('rows' + str(x_rows))
+        print('star shape:' + str(x_star.shape))
 
         # for i in range(self.N):
         #     Wx[:,:,i] = torch.sum(x_star*(self.w_mask*W.unsqueeze(1))[:,:,i,;,:],dim=(-1,-2))
