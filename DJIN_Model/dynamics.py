@@ -20,7 +20,7 @@ class SDEModel(nn.Module):
         for i in range(N):
             self.w_mask[i,:,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
             self.w_mask[:,i,:] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
-            self.w_masl[:,:,i] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
+            self.w_mask[:,:,i] *= (~torch.eye(N,dtype=bool)).type(torch.DoubleTensor)
         self.w_mask = self.w_mask.to(device)
 
         # diagonal neural net in dynamics
