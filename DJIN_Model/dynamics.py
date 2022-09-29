@@ -101,9 +101,8 @@ class SDEModel(nn.Module):
         log_Gamma, h = self.log_Gamma(torch.cat((x, (t.unsqueeze(-1) - self.mean_T)/self.std_T), dim=-1), h)
 
         x_cols = (torch.ones(self.N,x.shape[0],self.N)*x).permute(1,0,2)
-        x_rows = (torch.ones(self.N,x.shape[0],self.N)/x).permute(1,0,2)
         x_rows = x_rows.permute(0,2,1)
-        x_star = torch.matmul(x_cols,x_rows)
+        x_star = torch.div(x_cols, x_rows)
 
         Wx = torch.sum(x_star.unsqueeze(1)*(self.w_mask*W),axis=(-1,-2))/self.N
         dx = Wx + self.f(x,z_RNN) + self.g(torch.cat((x,z_RNN),dim=-1))
