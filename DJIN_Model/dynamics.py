@@ -70,20 +70,20 @@ class SDEModel(nn.Module):
         #     # Wx[:,:,i] = torch.sum(torch.matmul(W[:,i,:,:],x),axis=-1)
         #     Wx[:,:,i] = torch.sum(torch.matmul(x,(self.w_mask*W)[:,i:,:]), axis=-1)
 
-        x_cols = (torch.ones(self.N,x.shape[0],x.shape[1],self.N)*x).permute(1,2,0,3) # every column has same values
-        print('cols shape:' + str(x_cols.shape))
-        x_test = torch.div((torch.ones(self.N,x.shape[0],x.shape[1],self.N)), x).permute(1,2,0,3)
-        x_rows = x_test.permute(0,1,3,2)
-        print('rows shape:' + str(x_rows.shape))
-        x_star = torch.matmul(x_cols, x_rows)
-        print('star shape:' + str(x_star.shape))
-
         #x_cols = (torch.ones(self.N,x.shape[0],x.shape[1],self.N)*x).permute(1,2,0,3) # every column has same values
         #print('cols shape:' + str(x_cols.shape))
-        #x_rows = x_cols.permute(0,1,3,2)
+        #x_test = torch.div((torch.ones(self.N,x.shape[0],x.shape[1],self.N)), x).permute(1,2,0,3)
+        #x_rows = x_test.permute(0,1,3,2)
         #print('rows shape:' + str(x_rows.shape))
-        #x_star = torch.div(x_cols, x_rows)
+        #x_star = torch.matmul(x_cols, x_rows)
         #print('star shape:' + str(x_star.shape))
+
+        x_cols = (torch.ones(self.N,x.shape[0],x.shape[1],self.N)*x).permute(1,2,0,3) # every column has same values
+        print('cols shape:' + str(x_cols.shape))
+        x_rows = x_cols.permute(0,1,3,2)
+        print('rows shape:' + str(x_rows.shape))
+        x_star = x_cols + x_rows
+        print('star shape:' + str(x_star.shape))
 
         # for i in range(self.N):
         #     Wx[:,:,i] = torch.sum(x_star*(self.w_mask*W.unsqueeze(1))[:,:,i,;,:],dim=(-1,-2))
@@ -108,17 +108,17 @@ class SDEModel(nn.Module):
         x_ = x.clone()
         log_Gamma, h = self.log_Gamma(torch.cat((x, (t.unsqueeze(-1) - self.mean_T)/self.std_T), dim=-1), h)
 
-        x_cols = (torch.ones(self.N,x.shape[0],self.N)*x).permute(1,0,2)
-        print('FORWARD cols shape:' + str(x_cols.shape))
-        x_test = torch.div(torch.ones(self.N,x.shape[0],self.N)*x, x).permute(1,0,2)
-        x_rows = x_test.permute(0,2,1)
-        print('FORWARD rows shape:' + str(x_rows.shape))
-        x_star = torch.matmul(x_cols, x_rows)
-        print('FORWARD star shape:' + str(x_star.shape))
-
         #x_cols = (torch.ones(self.N,x.shape[0],self.N)*x).permute(1,0,2)
-        #x_rows = x_cols.permute(0,2,1)
-        #x_star = torch.div(x_cols, x_rows)
+        #print('FORWARD cols shape:' + str(x_cols.shape))
+        #x_test = torch.div(torch.ones(self.N,x.shape[0],self.N)*x, x).permute(1,0,2)
+        #x_rows = x_test.permute(0,2,1)
+        #print('FORWARD rows shape:' + str(x_rows.shape))
+        #x_star = torch.matmul(x_cols, x_rows)
+        #print('FORWARD star shape:' + str(x_star.shape))
+
+        x_cols = (torch.ones(self.N,x.shape[0],self.N)*x).permute(1,0,2)
+        x_rows = x_cols.permute(0,2,1)
+        x_star = x_cols + x_rows
 
         Wx = torch.sum(x_star.unsqueeze(1)*(self.w_mask*W),axis=(-1,-2))/self.N
         dx = Wx + self.f(x,z_RNN) + self.g(torch.cat((x,z_RNN),dim=-1))
