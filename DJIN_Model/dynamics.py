@@ -114,6 +114,7 @@ class SDEModel(nn.Module):
         x_rows = x_rows.permute(0,2,1)
         print('FORWARD rows shape:' + str(x_rows.shape))
         x_star = torch.matmul(x_cols, x_rows)
+        print('FORWARD star shape:' + str(x_star.shape))
 
         #x_cols = (torch.ones(self.N,x.shape[0],self.N)*x).permute(1,0,2)
         #x_rows = x_cols.permute(0,2,1)
