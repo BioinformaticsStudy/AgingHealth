@@ -139,7 +139,7 @@ for epoch in range(niters):
         print('data read')
         optimizer.zero_grad()
         
-        print('model mean:' + str(model.mean))
+        #print('model mean:' + str(model.mean))
         print('epoch:' + str(epoch))
         W_posterior = torch.distributions.laplace.Laplace(model.mean, model.logscale.exp())
         sigma_posterior = torch.distributions.gamma.Gamma(model.logalpha.exp(), model.logbeta.exp())
