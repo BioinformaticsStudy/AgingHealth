@@ -99,6 +99,7 @@ print('Data loaded: %d training examples and %d validation examples'%(training_s
 
 
 mean_T = training_set.mean_T
+print('mean_T: ' + str(mean_T))
 std_T = training_set.std_T
 
 model = Model(device, N, args.gamma_size, args.z_size, args.decoder_size, args.Nflows, args.flow_hidden, args.f_nn_size, mean_T, std_T, dt).to(device)
