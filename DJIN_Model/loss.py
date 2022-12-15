@@ -2,6 +2,8 @@ import torch
 from torch.nn import functional as F
 import numpy as np
 
+# various loss functions
+
 def log_gaussian(pred, data, sigma_y):
     return -0.5*torch.log(2*np.pi*sigma_y.pow(2)) - 0.5*(pred - data).pow(2)/sigma_y.pow(2)
 

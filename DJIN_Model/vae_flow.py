@@ -3,6 +3,8 @@ import torch.nn as nn
 from torch.nn import functional as F
 from .realnvp_flow import AffineHalfFlow, NormalizingFlowModel
 
+# code for the VAE (imputation)
+
 class VAEImputeFlows(nn.Module):
     def __init__(self, N, z_size, decoder_size, Nflows, flow_hidden, device):
         super(VAEImputeFlows, self).__init__()
