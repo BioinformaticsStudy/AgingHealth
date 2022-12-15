@@ -72,6 +72,7 @@ N = 29
 batch_size = args.batch_size
 dt = 0.5
 
+# loading population averages
 pop_avg = np.load(dir+'/Data/Population_averages.npy')
 pop_avg_env = np.load(dir+'/Data/Population_averages_env.npy')
 pop_std = np.load(dir+'/Data/Population_std.npy')
@@ -79,14 +80,14 @@ pop_avg = torch.from_numpy(pop_avg[...,1:]).float()
 pop_avg_env = torch.from_numpy(pop_avg_env).float()
 pop_std = torch.from_numpy(pop_std[...,1:]).float()
 
-
+# loading training dataset
 train_name = dir+'/Data/train.csv'
 training_set = Dataset(train_name, N, pop=False, min_count = 6)
 training_generator = data.DataLoader(training_set,
                                      batch_size = batch_size,
                                      shuffle = True, drop_last = True, num_workers = num_workers, pin_memory=True,
                                      collate_fn = lambda x: custom_collate(x, pop_avg, pop_avg_env, pop_std, args.corruption))
-
+# loading validation dataset
 valid_name = dir+'/Data/valid.csv'
 validation_set = Dataset(valid_name, N, pop=False, min_count = 6)
 validation_generator = data.DataLoader(validation_set,
@@ -100,6 +101,7 @@ print('Data loaded: %d training examples and %d validation examples'%(training_s
 mean_T = training_set.mean_T
 std_T = training_set.std_T
 
+# creating model to be trained
 model = Model(device, N, args.gamma_size, args.z_size, args.decoder_size, args.Nflows, args.flow_hidden, args.f_nn_size, mean_T, std_T, dt).to(device)
 
 
@@ -128,6 +130,8 @@ W_prior = torch.distributions.laplace.Laplace(torch.tensor(0.0).to(device), torc
 vae_prior = torch.distributions.normal.Normal(torch.tensor(0.0).to(device), torch.tensor(1.0).to(device))
 
 niters = args.niters
+
+# training for the specified number of epochs
 for epoch in range(niters):
     beta_dynamics = kl_scheduler_dynamics()
     beta_network = kl_scheduler_network()
@@ -137,6 +141,7 @@ for epoch in range(niters):
         print('data read')
         optimizer.zero_grad()
         
+        # calculating posteriors
         W_posterior = torch.distributions.laplace.Laplace(model.mean, model.logscale.exp())
         sigma_posterior = torch.distributions.gamma.Gamma(model.logalpha.exp(), model.logbeta.exp())
         
@@ -145,6 +150,7 @@ for epoch in range(niters):
         pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, W_mean = model(data, sigma_y)
         summed_weights = torch.sum(sample_weights)
         
+        # KL Divergence term for loss
         kl_term = \
           beta_network*torch.sum(matrix_mask*(torch.sum(sample_weights*(W_posterior.log_prob(W).permute(1,2,3,0)),dim=-1) - \
                                  torch.sum(sample_weights*(W_prior.log_prob(W).permute(1,2,3,0)),dim=-1))
@@ -176,6 +182,7 @@ for epoch in range(niters):
         print('train done')
     
     # check loss for whole training set
+    # this is when we use the validation data
     if epoch % test_after == 0:
 
         model = model.eval()
@@ -190,6 +197,8 @@ for epoch in range(niters):
                 
                 for data in validation_generator:
                     print('v data read')
+
+                    # calculate posteriors
                     W_posterior = torch.distributions.laplace.Laplace(model.mean, model.logscale.exp())
                     sigma_posterior = torch.distributions.gamma.Gamma(model.logalpha.exp(), model.logbeta.exp())
                     
@@ -199,6 +208,7 @@ for epoch in range(niters):
                     pred_X, t, pred_S, pred_logGamma, pred_sigma_X, context, y, times, mask, survival_mask, dead_mask, after_dead_mask, censored, sample_weights, med, env, z_sample, prior_entropy, log_det, recon_mean_x0, drifts, mask0, W_mean = model(data, sigma_y, test=True)
                     summed_weights = torch.sum(sample_weights)
                     
+                    # KL Divergence term for loss
                     kl_term = torch.sum(matrix_mask*(torch.sum(sample_weights*(W_posterior.log_prob(W).permute(1,2,3,0)),dim=-1) + \
                                         torch.sum(sample_weights*(W_prior.log_prob(W).permute(1,2,3,0)),dim=-1))
                                        ) + \
@@ -232,8 +242,10 @@ for epoch in range(niters):
     if epoch % 20 ==0:
         torch.save(model.state_dict(), '%strain%d_Model_DJIN_epoch%d.params'%(params_folder, args.job_id, epoch))
     
+    # step the schedulers
     kl_scheduler_dynamics.step()
     kl_scheduler_network.step()
     kl_scheduler_vae.step()
 
+# save of the parameters after training is complete
 torch.save(model.state_dict(), '%strain%d_Model_DJIN_epoch%d.params'%(params_folder, args.job_id, epoch))

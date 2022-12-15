@@ -49,9 +49,16 @@ class SDEModel(nn.Module):
             nn.Linear(8, N, bias=False)
         )
 
+    # output of sigma_x nn (this is the network for stochastic noise)
     def sigma_x(self, x): # lower bound of 1e-5
         return self.sigma_nn(x) + 1e-5
     
+    # Args: 
+    #   x -> Feature vector (size 29)
+    #   z ->
+    #   W -> 3D interaction matrix
+    # Purpose:
+    #   prior drift of model
     def prior_drift(self, x, z, W):
         print('prior drift calculating')
         # return torch.matmul(x, self.w_mask*W) + self.f(x,z)
@@ -80,16 +87,36 @@ class SDEModel(nn.Module):
 
         return Wx + self.f(x,z)
 
+    # Args: 
+    #   x -> Feature vector (size 29)
+    #   z ->
+    #   W -> 3D interaction matrix
+    # Purpose:
+    #   posterior drift of model
     def posterior_drift(self, x, z, W):
         return torch.matmul(x, self.w_mask*W) + self.g(torch.cat((x,z),dim=-1)) + self.f(x,z)
     
+
+    # Args: 
+    #   x -> Feature vector (size 29)
+    #   h ->
+    # Purpose:
+    #   output of survival rnn
     def log_Gamma(self, x, h):
         g, h1 = self.hazard1(x.unsqueeze(1), h[0])
         g, h2 = self.hazard2(g, h[1])
         h = (h1, h2)
         return self.hazard_out(g).squeeze(1), h
 
-    # output one step of posterior SDE and survival model
+
+    # Args: 
+    #         x -> Feature vector (size 29)
+    #         h ->
+    #         t ->
+    #   context ->
+    #         W -> 3D interaction matrix
+    # Purpose:
+    #   output one step of posterior SDE and survival model
     def forward(self, x, h, t, context, W):
         M = x.shape[0]
 
@@ -120,8 +147,14 @@ class SDEModel(nn.Module):
         
         return dx, log_dS, log_Gamma, h, self.sigma_x(x_)
         
-
-    # output one step of prior SDE and survival model
+    # Args: 
+    #         x -> Feature vector (size 29)
+    #         h ->
+    #         t ->
+    #   context ->
+    #         W -> 3D interaction matrix
+    # Purpose:
+    #   output one step of prior SDE and survival model
     def prior_sim(self, x, h, t, context, W):
         
         z_RNN = torch.cat(((t.unsqueeze(-1) - self.mean_T)/self.std_T, context), dim=-1)

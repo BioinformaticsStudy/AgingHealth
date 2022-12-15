@@ -6,14 +6,20 @@ from .memory_model import Memory
 from .vae_flow import VAEImputeFlows
 from .solver import SolveSDE
 
+# class for the model
+
 class Model(nn.Module):
     def __init__(self, device, N, gamma_size, z_size, decoder_size, Nflows, flow_hidden, f_nn_size, mean_T, std_T, dt = 0.5, length = 25):
         super(Model, self).__init__()
 
+        # feature vector size
         self.N = N
+
         self.gamma_size = gamma_size
         self.mean_T = mean_T
         self.std_T = std_T
+
+        # needed for VAE
         self.z_size = z_size
         
         self.device = device
@@ -31,7 +37,8 @@ class Model(nn.Module):
         self.memory0 = Memory(N, 10 + 26, self.gamma_size).to(device)
         self.dynamics = SDEModel(N, device, 10 + 26, self.gamma_size, f_nn_size, mean_T, std_T).to(device)
         self.solver = SolveSDE(N, device, dt=dt, length=length).to(device)
-        
+    
+    
     def forward(self, data, sigma_y, test = False):
         
         # get batch
