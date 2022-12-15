@@ -15,7 +15,9 @@ class Model(nn.Module):
         # feature vector size
         self.N = N
 
+        # used for mortality rnn
         self.gamma_size = gamma_size
+        
         self.mean_T = mean_T
         self.std_T = std_T
 
