@@ -55,7 +55,7 @@ class SDEModel(nn.Module):
     
     # Args: 
     #   x -> Feature vector (size 29)
-    #   z ->
+    #   z -> is an input to the diagonal_func
     #   W -> 3D interaction matrix
     # Purpose:
     #   prior drift of model
@@ -89,7 +89,7 @@ class SDEModel(nn.Module):
 
     # Args: 
     #   x -> Feature vector (size 29)
-    #   z ->
+    #   z -> is an input to the diagonal_func
     #   W -> 3D interaction matrix
     # Purpose:
     #   posterior drift of model
@@ -99,7 +99,7 @@ class SDEModel(nn.Module):
 
     # Args: 
     #   x -> Feature vector (size 29)
-    #   h ->
+    #   h -> previous hidden state for RNN
     # Purpose:
     #   output of survival rnn
     def log_Gamma(self, x, h):
@@ -111,9 +111,9 @@ class SDEModel(nn.Module):
 
     # Args: 
     #         x -> Feature vector (size 29)
-    #         h ->
-    #         t ->
-    #   context ->
+    #         h -> previous hidden state for RNN
+    #         t -> ages for previous time set
+    #   context -> background
     #         W -> 3D interaction matrix
     # Purpose:
     #   output one step of posterior SDE and survival model
@@ -149,9 +149,9 @@ class SDEModel(nn.Module):
         
     # Args: 
     #         x -> Feature vector (size 29)
-    #         h ->
-    #         t ->
-    #   context ->
+    #         h -> previous hidden state for RNN
+    #         t -> ages for previous time set
+    #   context -> background
     #         W -> 3D interaction matrix
     # Purpose:
     #   output one step of prior SDE and survival model

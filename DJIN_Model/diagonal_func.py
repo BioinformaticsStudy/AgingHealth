@@ -4,6 +4,8 @@ from torch.nn import functional as F
 
 
 # N separate independent neural networks 
+# This is used in the SDEModel class
+
 class DiagonalFunc(nn.Module):
 
     def __init__(self, N, input_size, hidden_size1):
@@ -20,5 +22,6 @@ class DiagonalFunc(nn.Module):
             ))
         self.f = nn.ModuleList(f)
         
+    # output of the nns for the given vector
     def forward(self, x, z):
         return torch.cat([self.f[i](torch.cat((x[..., i].unsqueeze(-1), z), dim=-1)) for i in range(self.N)], dim = -1)

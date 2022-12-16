@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+# various flow classes
+
 class MLP(nn.Module):
     def __init__(self, nin, nout, nh):
         super(MLP, self).__init__()

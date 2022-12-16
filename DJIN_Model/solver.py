@@ -14,6 +14,14 @@ class SolveSDE(nn.Module):
         self.dt = dt
         self.num_t = int(length/dt)
     
+    # Args: 
+    #   model -> dynamics (SDE Model)
+    #      x0 -> imputed baseline state
+    #      t0 -> baseline ages
+    #       M -> batch size
+    # context -> background
+    #       h -> initial hidden state (for rnn)
+    #       W -> model "mean" parameter
     def _solve(self, model, x0, t0, M, context, h, W):
 
         X = torch.zeros((M, self.num_t, self.N)).to(self.device)
@@ -46,6 +54,14 @@ class SolveSDE(nn.Module):
         sigma_xs[:,0] = sigma_xs[:,1]
         return times, X, log_S, log_Gammas, sigma_xs, drifts
 
+    # Args: 
+    #   model -> dynamics (SDE Model)
+    #      x0 -> imputed baseline state
+    #      t0 -> baseline ages
+    #       M -> batch size
+    # context -> background
+    #       h -> hidden state (for rnn)
+    #       W -> model "mean" parameter
     def _solve_prior(self, model, x0, t0, M, context, h, W):
 
         X = torch.zeros((M, self.num_t, self.N)).to(self.device)

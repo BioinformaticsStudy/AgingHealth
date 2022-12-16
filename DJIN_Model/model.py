@@ -9,6 +9,7 @@ from .solver import SolveSDE
 # class for the model
 
 class Model(nn.Module):
+    
     def __init__(self, device, N, gamma_size, z_size, decoder_size, Nflows, flow_hidden, f_nn_size, mean_T, std_T, dt = 0.5, length = 25):
         super(Model, self).__init__()
 

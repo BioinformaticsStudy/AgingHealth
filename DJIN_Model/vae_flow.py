@@ -15,6 +15,7 @@ class VAEImputeFlows(nn.Module):
         self.device = device
         self.Nflows = Nflows
         
+        # encoder nn
         self.encoder = nn.Sequential(
             nn.Linear(2*N + 26 + med_size + 1, 95),
             nn.BatchNorm1d(95),
@@ -25,9 +26,11 @@ class VAEImputeFlows(nn.Module):
             nn.Linear(70, 2*z_size + z_size//2)
         )
         
+        # NVP Normalizing flows
         flows = [AffineHalfFlow(dim=z_size, h_size = z_size//2, parity=i%2, device=self.device, nh = flow_hidden) for i in range(Nflows)]
         self.flow_model = NormalizingFlowModel(flows, self.device)
         
+        # decoder nn
         self.decoder_net = nn.Sequential(
             nn.Linear(z_size + 26 + med_size + 1, decoder_size),
             nn.BatchNorm1d(decoder_size),
@@ -51,5 +54,6 @@ class VAEImputeFlows(nn.Module):
         
         return sample0, zs[-1], mu0, logvar0, prior.entropy(), log_det
     
+    # returns output of decoder nn
     def decoder(self, z):
         return self.decoder_net(z)

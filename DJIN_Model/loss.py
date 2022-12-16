@@ -4,10 +4,11 @@ import numpy as np
 
 # various loss functions
 
+# sigma_y is measurement noise
 def log_gaussian(pred, data, sigma_y):
     return -0.5*torch.log(2*np.pi*sigma_y.pow(2)) - 0.5*(pred - data).pow(2)/sigma_y.pow(2)
 
-
+# calculates loss
 def loss(X, recon_x0, log_Gamma, log_S, survival_mask, dead_mask, after_dead_mask, times, data, censored, mask, sigma_y, sigma_y0, batch_weights):
 
     # longitudinal
@@ -24,6 +25,7 @@ def loss(X, recon_x0, log_Gamma, log_S, survival_mask, dead_mask, after_dead_mas
     
     return -1*( torch.sum( batch_log_likelihood,dim=0) + torch.sum(batch_weights*batch_log_S_likelihood,dim=0))
 
+# Kullback_Leibler (KL) Divergence for the SDE
 def sde_KL_loss(X, times, context, survival_mask, g_result, prior, sigma_x, dt, mean_T, std_T, batch_weights, med, W, W_mean):
     
     T = X.shape[1]
